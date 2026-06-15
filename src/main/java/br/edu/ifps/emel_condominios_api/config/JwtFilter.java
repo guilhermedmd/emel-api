@@ -30,34 +30,22 @@ protected void doFilterInternal(
         FilterChain filterChain)
         throws ServletException, IOException {
 
-    System.out.println("Entrou no filtro");
-
     String auth = request.getHeader("Authorization");
-
-    System.out.println("Header: " + auth);
-
     if(auth != null && auth.startsWith("Bearer ")){
 
         String token = auth.substring(7);
-
-        System.out.println("Token: " + token);
-
         try {
             String email = jwtService.extrairEmail(token);
 
             System.out.println("Email: " + email);
-
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             email,
                             null,
                             List.of()
                     );
-
             SecurityContextHolder.getContext()
                     .setAuthentication(authentication);
-
-            System.out.println("Autenticado!");
         }
         catch(Exception e){
             e.printStackTrace();

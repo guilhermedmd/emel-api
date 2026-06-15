@@ -24,9 +24,9 @@ public class VisitaService {
 
     public Visita editarVisita(long id, Visita novaVisita){
         return visitaRepository.findById(id).map(visita -> {
-            visita.setTipo(visita.getTipo());
-            visita.setData(visita.getData());
-            visita.setVisitantes(visita.getVisitantes());
+            visita.setTipo(novaVisita.getTipo());
+            visita.setData(novaVisita.getData());
+            visita.setVisitantes(novaVisita.getVisitantes());
             return visitaRepository.save(visita);
         }).orElseThrow(() -> new RuntimeException("Erro: Visita não encontrada"));
     }
