@@ -34,19 +34,19 @@ public class NotificacaoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Notificacao> mostrarNotificacaoPeloId(@PathVariable long id) {
+    public ResponseEntity<Notificacao> mostrarNotificacaoPeloId(@PathVariable Long id) {
         Notificacao notificacao = notificacaoService.mostrarNotificacao(id);
         return ResponseEntity.ok(notificacao);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Notificacao> editarNotificacao(@PathVariable long id, @RequestBody Notificacao novaNotificacao) {
+    public ResponseEntity<Notificacao> editarNotificacao(@PathVariable Long id, @RequestBody Notificacao novaNotificacao) {
         Notificacao notificacao = notificacaoService.editarNotificacao(id, novaNotificacao);
         return ResponseEntity.ok(notificacao);
     }
 
     @DeleteMapping("/{id}")
-    public void deletarNotificacao(@PathVariable long id){
+    public void deletarNotificacao(@PathVariable Long id){
         notificacaoService.deletarNotificacao(id);
     }
     

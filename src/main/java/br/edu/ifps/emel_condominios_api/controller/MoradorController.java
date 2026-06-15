@@ -31,19 +31,19 @@ public class MoradorController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Morador> mostrarMoradorPorId(@PathVariable long id) {
+    public ResponseEntity<Morador> mostrarMoradorPorId(@PathVariable Long id) {
         Morador morador = moradorService.mostrarMoradorPorId(id);
         return ResponseEntity.ok(morador);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Morador> editarMorador(@PathVariable long id, @RequestBody Morador novoMorador) {
+    public ResponseEntity<Morador> editarMorador(@PathVariable Long id, @RequestBody Morador novoMorador) {
         Morador morador = moradorService.editarMorador(id, novoMorador);
         return ResponseEntity.ok(morador);
     }
 
     @DeleteMapping("/{id}")
-    public void deletarMorador(@PathVariable long id){
+    public void deletarMorador(@PathVariable Long id){
         moradorService.deletarMorador(id);
     }
     

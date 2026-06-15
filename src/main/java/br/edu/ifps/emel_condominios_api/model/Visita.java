@@ -24,9 +24,9 @@ import lombok.Setter;
 @Entity
 public class Visita {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "visita_id")
-    private long id;
+    private Long id;
     private String tipo;
     private LocalDate data;    
     @ManyToMany
@@ -39,4 +39,12 @@ public class Visita {
     @ManyToOne
     @JoinColumn(name = "morador_id")
     private Morador morador;
+    public Visita(String tipo, LocalDate data, List<Visitante> visitantes, Morador morador) {
+        this.tipo = tipo;
+        this.data = data;
+        this.visitantes = visitantes;
+        this.morador = morador;
+    }
+
+    
 }

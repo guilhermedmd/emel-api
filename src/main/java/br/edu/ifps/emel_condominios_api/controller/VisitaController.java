@@ -30,19 +30,19 @@ public class VisitaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Visita> mostrarVisitaPorId(@PathVariable long id) {
+    public ResponseEntity<Visita> mostrarVisitaPorId(@PathVariable Long id) {
         Visita visita = visitaService.mostrarVisitaPorId(id);
         return ResponseEntity.ok(visita);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Visita> editarVisita(@PathVariable long id, @RequestBody Visita novaVisita) {
+    public ResponseEntity<Visita> editarVisita(@PathVariable Long id, @RequestBody Visita novaVisita) {
         Visita visita = visitaService.editarVisita(id, novaVisita);
         return ResponseEntity.ok(visita);
     }
     
     @DeleteMapping("/{id}")
-    public void deletarVisita(@PathVariable long id){
+    public void deletarVisita(@PathVariable Long id){
         visitaService.deletarVisita(id);
     }
     

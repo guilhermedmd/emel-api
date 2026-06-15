@@ -17,12 +17,19 @@ import lombok.Setter;
 @Entity
 public class Morador {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "morador_id")
-    private long id;
+    private Long id;
     private String nome;
     private String email;
     private String telefone;
     private String cpf;
+    public Morador(String nome, String email, String telefone, String cpf) {
+        this.nome = nome;
+        this.email = email;
+        this.telefone = telefone;
+        this.cpf = cpf;
+    }
 
+    
 }

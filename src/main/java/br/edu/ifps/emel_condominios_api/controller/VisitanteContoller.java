@@ -31,19 +31,19 @@ public class VisitanteContoller {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Visitante> mostrarVisitantePorId(@PathVariable long id) {
+    public ResponseEntity<Visitante> mostrarVisitantePorId(@PathVariable Long id) {
         Visitante visitante = visitanteService.MostrarVisitantePorId(id);
         return ResponseEntity.ok(visitante);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Visitante> editarVisitante(@PathVariable long id, @RequestBody Visitante novoVisitante) {
+    public ResponseEntity<Visitante> editarVisitante(@PathVariable Long id, @RequestBody Visitante novoVisitante) {
         Visitante visitante = visitanteService.editarVisitante(id, novoVisitante);
         return ResponseEntity.ok(visitante);
     }
 
     @DeleteMapping("/{id}")
-    public void deletarVisitante(@PathVariable long id){
+    public void deletarVisitante(@PathVariable Long id){
         visitanteService.deletarVisitante(id);
     }
     
