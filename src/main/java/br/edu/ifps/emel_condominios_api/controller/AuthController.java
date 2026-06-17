@@ -34,10 +34,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String registerSindico(@RequestBody Sindico novoSindico) {
+    public LoginResponse registerSindico(@RequestBody Sindico novoSindico) {
         String emailSindico = SindicoService.register(novoSindico);
         String token = jwtService.gerarTokens(emailSindico);
-        return token;
+        return new LoginResponse(token);
     }
     
     
