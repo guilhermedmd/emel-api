@@ -39,12 +39,15 @@ public class Visita {
     @ManyToOne
     @JoinColumn(name = "morador_id")
     private Morador morador;
+
+    public Visita(Long id) {
+        this.id = id;
+    }
+
     public Visita(String tipo, LocalDate data, List<Visitante> visitantes, Morador morador) {
         this.tipo = tipo;
         this.data = data;
         this.visitantes = visitantes;
         this.morador = morador;
     }
-
-    
 }

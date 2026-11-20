@@ -1,24 +1,23 @@
 package br.edu.ifps.emel_condominios_api.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.edu.ifps.emel_condominios_api.model.Morador;
 import br.edu.ifps.emel_condominios_api.service.MoradorService;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-
 @RestController
 @RequestMapping("/morador")
 public class MoradorController {
 
-    MoradorService moradorService;
+    private final MoradorService moradorService;
     
     public MoradorController(MoradorService moradorService) {
         this.moradorService = moradorService;
@@ -26,8 +25,8 @@ public class MoradorController {
 
     @PostMapping
     public ResponseEntity<Morador> cadastroMorador(@RequestBody Morador morador) {
-        moradorService.criarMorador(morador);
-        return ResponseEntity.ok(morador);
+        Morador novoMorador = moradorService.criarMorador(morador);
+        return ResponseEntity.ok(novoMorador);
     }
 
     @GetMapping("/{id}")
@@ -43,9 +42,8 @@ public class MoradorController {
     }
 
     @DeleteMapping("/{id}")
-    public void deletarMorador(@PathVariable Long id){
+    public ResponseEntity<Void> deletarMorador(@PathVariable Long id){
         moradorService.deletarMorador(id);
+        return ResponseEntity.ok().build();
     }
-    
-    
 }

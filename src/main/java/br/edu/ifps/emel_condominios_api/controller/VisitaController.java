@@ -1,23 +1,22 @@
 package br.edu.ifps.emel_condominios_api.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.edu.ifps.emel_condominios_api.model.Visita;
 import br.edu.ifps.emel_condominios_api.service.VisitaService;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-
 @RestController
 @RequestMapping("/visita")
 public class VisitaController {
-    VisitaService visitaService;
+    private final VisitaService visitaService;
 
     public VisitaController(VisitaService visitaService) {
         this.visitaService = visitaService;
@@ -42,8 +41,8 @@ public class VisitaController {
     }
     
     @DeleteMapping("/{id}")
-    public void deletarVisita(@PathVariable Long id){
+    public ResponseEntity<Void> deletarVisita(@PathVariable Long id){
         visitaService.deletarVisita(id);
+        return ResponseEntity.ok().build();
     }
-    
 }

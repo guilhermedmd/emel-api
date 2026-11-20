@@ -8,7 +8,7 @@ import br.edu.ifps.emel_condominios_api.repository.VisitaRepository;
 @Service
 public class VisitaService {
     
-    VisitaRepository visitaRepository;
+    private final VisitaRepository visitaRepository;
 
     public VisitaService(VisitaRepository visitaRepository) {
         this.visitaRepository = visitaRepository;
@@ -18,11 +18,11 @@ public class VisitaService {
         return visitaRepository.save(novaVisita);
     }
 
-    public Visita mostrarVisitaPorId(long id){
+    public Visita mostrarVisitaPorId(Long id){
         return visitaRepository.findById(id).orElseThrow(() -> new RuntimeException("Erro: Visita não encontrada"));
     }
 
-    public Visita editarVisita(long id, Visita novaVisita){
+    public Visita editarVisita(Long id, Visita novaVisita){
         return visitaRepository.findById(id).map(visita -> {
             visita.setTipo(novaVisita.getTipo());
             visita.setData(novaVisita.getData());
@@ -31,7 +31,7 @@ public class VisitaService {
         }).orElseThrow(() -> new RuntimeException("Erro: Visita não encontrada"));
     }
 
-    public void deletarVisita(long id){
+    public void deletarVisita(Long id){
         visitaRepository.deleteById(id);
     }
 }

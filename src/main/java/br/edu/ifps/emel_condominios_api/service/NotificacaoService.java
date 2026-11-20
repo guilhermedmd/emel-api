@@ -8,7 +8,7 @@ import br.edu.ifps.emel_condominios_api.repository.NotificacaoRepository;
 @Service
 public class NotificacaoService {
     
-    NotificacaoRepository notificacaoRepository;
+    private final NotificacaoRepository notificacaoRepository;
 
     public NotificacaoService(NotificacaoRepository notificacaoRepository) {
         this.notificacaoRepository = notificacaoRepository;
@@ -18,11 +18,11 @@ public class NotificacaoService {
         return notificacaoRepository.save(novaNotificacao);
     }
 
-    public Notificacao mostrarNotificacao(long id){
+    public Notificacao mostrarNotificacao(Long id){
         return notificacaoRepository.findById(id).orElseThrow(() -> new RuntimeException("Erro: notificação não encontrada"));
     }
 
-    public Notificacao editarNotificacao(long id, Notificacao novaNotificacao){
+    public Notificacao editarNotificacao(Long id, Notificacao novaNotificacao){
         return notificacaoRepository.findById(id).map(notificacao -> {
             notificacao.setTitulo(novaNotificacao.getTitulo());
             notificacao.setDescricao(novaNotificacao.getDescricao());
@@ -31,7 +31,7 @@ public class NotificacaoService {
         }).orElseThrow(() -> new RuntimeException("Erro: notificação não encontrada"));
     }
 
-    public void deletarNotificacao(long id){
+    public void deletarNotificacao(Long id){
         notificacaoRepository.deleteById(id);
     }
 }

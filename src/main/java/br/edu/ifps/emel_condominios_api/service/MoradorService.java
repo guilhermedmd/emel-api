@@ -7,7 +7,8 @@ import br.edu.ifps.emel_condominios_api.repository.MoradorRepository;
 
 @Service
 public class MoradorService {
-    MoradorRepository moradorRepository;
+
+    private final MoradorRepository moradorRepository;
 
     public MoradorService(MoradorRepository moradorRepository) {
         this.moradorRepository = moradorRepository;
@@ -18,21 +19,20 @@ public class MoradorService {
     }
 
     public Morador mostrarMoradorPorId(Long id){
-        return moradorRepository.findById(id).orElseThrow( () -> new RuntimeException("Morador não encontrado"));
+        return moradorRepository.findById(id).orElseThrow(() -> new RuntimeException("Morador não encontrado"));
     }
 
-    public Morador editarMorador(long id, Morador novMorador){
+    public Morador editarMorador(Long id, Morador novoMorador){
         return moradorRepository.findById(id).map(morador -> {
-            morador.setNome(novMorador.getNome());
-            morador.setEmail(novMorador.getEmail());
-            morador.setTelefone(novMorador.getTelefone());
-            morador.setCpf(novMorador.getCpf());
+            morador.setNome(novoMorador.getNome());
+            morador.setEmail(novoMorador.getEmail());
+            morador.setTelefone(novoMorador.getTelefone());
+            morador.setCpf(novoMorador.getCpf());
             return moradorRepository.save(morador);
-        }).orElseThrow( () -> new RuntimeException("Morador não encontrado"));
+        }).orElseThrow(() -> new RuntimeException("Morador não encontrado"));
     }
 
-    public void deletarMorador(long id){
+    public void deletarMorador(Long id){
         moradorRepository.deleteById(id);
     }
-
 }

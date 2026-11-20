@@ -2,8 +2,6 @@ package br.edu.ifps.emel_condominios_api.model;
 
 import java.time.LocalDate;
 
-import org.hibernate.annotations.GeneratedColumn;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -23,15 +21,23 @@ import lombok.Setter;
 @Entity
 public class Notificacao {
     @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "notificacao_id")
     private Long id;
-    private String titulo, descricao, tipo;
+
+    private String titulo;
+    private String descricao;
+    private String tipo;
     private LocalDate data;
+
     @ManyToOne
     @JoinColumn(name = "morador_id")
     private Morador morador;
-    
+
+    public Notificacao(Long id) {
+        this.id = id;
+    }
+
     public Notificacao(String titulo, String descricao, String tipo, LocalDate data, Morador morador) {
         this.titulo = titulo;
         this.descricao = descricao;
@@ -39,6 +45,4 @@ public class Notificacao {
         this.data = data;
         this.morador = morador;
     }
-
-    
 }

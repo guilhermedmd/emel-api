@@ -1,24 +1,23 @@
 package br.edu.ifps.emel_condominios_api.controller;
 
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.edu.ifps.emel_condominios_api.model.Visitante;
 import br.edu.ifps.emel_condominios_api.service.VisitanteService;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-
 @RestController
 @RequestMapping("/visitante")
 public class VisitanteContoller {
 
-    VisitanteService visitanteService;
+    private final VisitanteService visitanteService;
 
     public VisitanteContoller(VisitanteService visitanteService) {
         this.visitanteService = visitanteService;
@@ -32,7 +31,7 @@ public class VisitanteContoller {
 
     @GetMapping("/{id}")
     public ResponseEntity<Visitante> mostrarVisitantePorId(@PathVariable Long id) {
-        Visitante visitante = visitanteService.MostrarVisitantePorId(id);
+        Visitante visitante = visitanteService.mostrarVisitantePorId(id);
         return ResponseEntity.ok(visitante);
     }
 
@@ -43,9 +42,8 @@ public class VisitanteContoller {
     }
 
     @DeleteMapping("/{id}")
-    public void deletarVisitante(@PathVariable Long id){
+    public ResponseEntity<Void> deletarVisitante(@PathVariable Long id){
         visitanteService.deletarVisitante(id);
+        return ResponseEntity.ok().build();
     }
-    
-    
 }

@@ -8,7 +8,7 @@ import br.edu.ifps.emel_condominios_api.repository.VisitanteRepository;
 @Service
 public class VisitanteService {
 
-    VisitanteRepository visitanteRepository;
+    private final VisitanteRepository visitanteRepository;
 
     public VisitanteService(VisitanteRepository visitanteRepository) {
         this.visitanteRepository = visitanteRepository;
@@ -17,10 +17,16 @@ public class VisitanteService {
     public Visitante cadastrarVisitante(Visitante novoVisitante){
         return visitanteRepository.save(novoVisitante);
     }
-    public Visitante MostrarVisitantePorId(Long id){
+
+    public Visitante mostrarVisitantePorId(Long id){
         return visitanteRepository.findById(id).orElseThrow(() -> new RuntimeException("Erro: Visitante não encontrado"));
     }
-    public Visitante editarVisitante(long id, Visitante novoVisitante){
+
+    public Visitante MostrarVisitantePorId(Long id){
+        return mostrarVisitantePorId(id);
+    }
+
+    public Visitante editarVisitante(Long id, Visitante novoVisitante){
         return visitanteRepository.findById(id).map(visitante -> {
             visitante.setNome(novoVisitante.getNome());
             visitante.setEmail(novoVisitante.getEmail());
@@ -29,9 +35,8 @@ public class VisitanteService {
             return visitanteRepository.save(visitante);
         }).orElseThrow(() -> new RuntimeException("Erro: Visitante não encontrado"));
     }
-    public void deletarVisitante(long id){
+
+    public void deletarVisitante(Long id){
         visitanteRepository.deleteById(id);
     }
-    
-} 
-
+}
