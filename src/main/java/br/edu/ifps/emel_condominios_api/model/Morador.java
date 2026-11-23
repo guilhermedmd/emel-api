@@ -25,9 +25,18 @@ public class Morador {
     private String email;
     private String telefone;
     private String cpf;
+    private String senha;
 
     public Morador(Long id) {
         this.id = id;
+    }
+
+    public Morador(String nome, String email, String telefone, String cpf, String senha) {
+        this.nome = nome;
+        this.email = email;
+        this.telefone = telefone;
+        this.cpf = cpf;
+        this.senha = senha;
     }
 
     public Morador(String nome, String email, String telefone, String cpf) {

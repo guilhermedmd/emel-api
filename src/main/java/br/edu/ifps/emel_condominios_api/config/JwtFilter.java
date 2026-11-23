@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -35,16 +36,25 @@ public class JwtFilter extends OncePerRequestFilter {
             String token = auth.substring(7);
             try {
                 String email = jwtService.extrairEmail(token);
+                String role = jwtService.extrairRole(token);
+
+                List<SimpleGrantedAuthority> authorities;
+                if (role != null && !role.isBlank()) {
+                    String roleName = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase();
+                    authorities = List.of(new SimpleGrantedAuthority(roleName));
+                } else {
+                    authorities = List.of(new SimpleGrantedAuthority("ROLE_SINDICO"));
+                }
+
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 email,
                                 null,
-                                List.of()
+                                authorities
                         );
                 SecurityContextHolder.getContext()
                         .setAuthentication(authentication);
             } catch (Exception e) {
-                // Log da exceção sem bloquear o fluxo
                 System.err.println("Erro ao validar token JWT: " + e.getMessage());
             }
         }
