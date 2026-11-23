@@ -1,5 +1,7 @@
 package br.edu.ifps.emel_condominios_api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +24,8 @@ public class Sindico {
     private Long id;
 
     private String email;
+
+    @JsonIgnore
     private String senha;
 
     public Sindico(Long id) {

@@ -61,6 +61,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponseDto> handleForbidden(ForbiddenException ex, HttpServletRequest request) {
+        ErrorResponseDto error = new ErrorResponseDto(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                HttpStatus.FORBIDDEN.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponseDto> handleGenericRuntime(RuntimeException ex, HttpServletRequest request) {
         String msg = ex.getMessage() != null ? ex.getMessage() : "Erro interno no servidor";
@@ -69,14 +81,16 @@ public class GlobalExceptionHandler {
         String msgLower = msg.toLowerCase();
         if (msgLower.contains("não encontrad") || msgLower.contains("nao encontrad")) {
             status = HttpStatus.NOT_FOUND;
+        } else if (msgLower.contains("permissão") || msgLower.contains("permissao")) {
+            status = HttpStatus.FORBIDDEN;
         } else if (msgLower.contains("rn02") || msgLower.contains("conflito")) {
             status = HttpStatus.CONFLICT;
         } else if (msgLower.contains("rn01") || msgLower.contains("rn03") || msgLower.contains("rn04") ||
                    msgLower.contains("rn06") || msgLower.contains("limite") || msgLower.contains("antecedência") ||
-                   msgLower.contains("antecedencia") || msgLower.contains("capacidade") || 
-                   msgLower.contains("indisponível") || msgLower.contains("indisponivel") || 
+                   msgLower.contains("antecedencia") || msgLower.contains("capacidade") ||
+                   msgLower.contains("indisponível") || msgLower.contains("indisponivel") ||
                    msgLower.contains("apenas reservas") || msgLower.contains("já se encontra cancelada") ||
-                   msgLower.contains("ja se encontra cancelada")) {
+                   msgLower.contains("ja se encontra cancelada") || msgLower.contains("recusada")) {
             status = HttpStatus.UNPROCESSABLE_ENTITY;
         }
 

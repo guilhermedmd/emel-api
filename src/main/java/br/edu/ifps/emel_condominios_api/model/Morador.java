@@ -1,5 +1,7 @@
 package br.edu.ifps.emel_condominios_api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -25,6 +27,8 @@ public class Morador {
     private String email;
     private String telefone;
     private String cpf;
+
+    @JsonIgnore
     private String senha;
 
     public Morador(Long id) {

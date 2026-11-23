@@ -3,6 +3,8 @@ package br.edu.ifps.emel_condominios_api.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,9 +27,25 @@ public class ReservaController {
         this.reservaService = reservaService;
     }
 
+    private String extrairEmail(Authentication auth) {
+        return auth != null ? auth.getName() : null;
+    }
+
+    private String extrairRole(Authentication auth) {
+        if (auth == null) return null;
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(a -> a.startsWith("ROLE_"))
+                .map(a -> a.substring(5))
+                .findFirst()
+                .orElse(null);
+    }
+
     @PostMapping
-    public ResponseEntity<Reserva> criarReserva(@RequestBody Reserva reserva) {
-        Reserva novaReserva = reservaService.criarReserva(reserva);
+    public ResponseEntity<Reserva> criarReserva(@RequestBody Reserva reserva, Authentication auth) {
+        String email = extrairEmail(auth);
+        String role = extrairRole(auth);
+        Reserva novaReserva = reservaService.criarReserva(reserva, email, role);
         return ResponseEntity.ok(novaReserva);
     }
 
@@ -38,14 +56,18 @@ public class ReservaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Reserva> mostrarReservaPorId(@PathVariable Long id) {
-        Reserva reserva = reservaService.mostrarReservaPorId(id);
+    public ResponseEntity<Reserva> mostrarReservaPorId(@PathVariable Long id, Authentication auth) {
+        String email = extrairEmail(auth);
+        String role = extrairRole(auth);
+        Reserva reserva = reservaService.mostrarReservaPorId(id, email, role);
         return ResponseEntity.ok(reserva);
     }
 
     @GetMapping("/morador/{moradorId}")
-    public ResponseEntity<List<Reserva>> listarReservasPorMorador(@PathVariable Long moradorId) {
-        List<Reserva> reservas = reservaService.listarReservasPorMorador(moradorId);
+    public ResponseEntity<List<Reserva>> listarReservasPorMorador(@PathVariable Long moradorId, Authentication auth) {
+        String email = extrairEmail(auth);
+        String role = extrairRole(auth);
+        List<Reserva> reservas = reservaService.listarReservasPorMorador(moradorId, email, role);
         return ResponseEntity.ok(reservas);
     }
 
@@ -56,8 +78,10 @@ public class ReservaController {
     }
 
     @PutMapping("/{id}/cancelar")
-    public ResponseEntity<Reserva> cancelarReserva(@PathVariable Long id) {
-        Reserva cancelada = reservaService.cancelarReserva(id);
+    public ResponseEntity<Reserva> cancelarReserva(@PathVariable Long id, Authentication auth) {
+        String email = extrairEmail(auth);
+        String role = extrairRole(auth);
+        Reserva cancelada = reservaService.cancelarReserva(id, email, role);
         return ResponseEntity.ok(cancelada);
     }
 
