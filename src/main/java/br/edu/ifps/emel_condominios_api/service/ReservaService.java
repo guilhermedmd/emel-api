@@ -7,6 +7,10 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import br.edu.ifps.emel_condominios_api.exception.BadRequestException;
+import br.edu.ifps.emel_condominios_api.exception.BusinessRuleException;
+import br.edu.ifps.emel_condominios_api.exception.ConflictException;
+import br.edu.ifps.emel_condominios_api.exception.ResourceNotFoundException;
 import br.edu.ifps.emel_condominios_api.model.AreaLazer;
 import br.edu.ifps.emel_condominios_api.model.Morador;
 import br.edu.ifps.emel_condominios_api.model.Notificacao;
@@ -36,17 +40,29 @@ public class ReservaService {
 
     public Reserva criarReserva(Reserva reserva) {
         if (reserva.getMorador() == null || reserva.getMorador().getId() == null) {
-            throw new RuntimeException("Erro: O morador solicitante (morador_id) deve ser informado.");
+            throw new BadRequestException("Erro: O morador solicitante (morador_id) deve ser informado.");
         }
         if (reserva.getAreaLazer() == null || reserva.getAreaLazer().getId() == null) {
-            throw new RuntimeException("Erro: A área de lazer (area_lazer_id) deve ser informada.");
+            throw new BadRequestException("Erro: A área de lazer (area_lazer_id) deve ser informada.");
         }
 
         Morador morador = moradorRepository.findById(reserva.getMorador().getId())
-                .orElseThrow(() -> new RuntimeException("Erro: Morador não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Erro: Morador não encontrado"));
 
         AreaLazer areaLazer = areaLazerRepository.findById(reserva.getAreaLazer().getId())
-                .orElseThrow(() -> new RuntimeException("Erro: Área de lazer não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Erro: Área de lazer não encontrada"));
+
+        // Bloqueio de áreas inativas ou em manutenção conforme Quadro 1a
+        if (areaLazer.getStatus() != null) {
+            String statusArea = areaLazer.getStatus().trim().toUpperCase();
+            if ("MANUTENCAO".equals(statusArea) || "MANUTENÇÃO".equals(statusArea) ||
+                "INATIVO".equals(statusArea) || "INATIVA".equals(statusArea) ||
+                "BLOQUEADA".equals(statusArea) || "BLOQUEADO".equals(statusArea) ||
+                "INDISPONIVEL".equals(statusArea) || "INDISPONÍVEL".equals(statusArea)) {
+                throw new BusinessRuleException("Erro: A área de lazer '" + areaLazer.getNome() + 
+                        "' está indisponível para reservas no momento (status: " + areaLazer.getStatus() + ").");
+            }
+        }
 
         if (reserva.getDataSolicitacao() == null) {
             reserva.setDataSolicitacao(LocalDateTime.now());
@@ -58,22 +74,22 @@ public class ReservaService {
 
         // RN01 – Consistência Cronológica e Antecedência
         if (dataHoraInicio == null || dataHoraFim == null) {
-            throw new RuntimeException("Erro (RN01): As datas e horários de início e fim são obrigatórios.");
+            throw new BadRequestException("Erro (RN01): As datas e horários de início e fim são obrigatórios.");
         }
 
         if (!dataHoraFim.isAfter(dataHoraInicio)) {
-            throw new RuntimeException("Erro (RN01): A data/hora de fim deve ser obrigatoriamente posterior à data/hora de início.");
+            throw new BusinessRuleException("Erro (RN01): A data/hora de fim deve ser obrigatoriamente posterior à data/hora de início.");
         }
 
         LocalDateTime minInicio = dataSolicitacao.plusHours(24);
         LocalDateTime maxInicio = dataSolicitacao.plusDays(90);
 
         if (dataHoraInicio.isBefore(minInicio)) {
-            throw new RuntimeException("Erro (RN01): A reserva deve ser solicitada com antecedência mínima de 24 horas a partir do momento da solicitação.");
+            throw new BusinessRuleException("Erro (RN01): A reserva deve ser solicitada com antecedência mínima de 24 horas a partir do momento da solicitação.");
         }
 
         if (dataHoraInicio.isAfter(maxInicio)) {
-            throw new RuntimeException("Erro (RN01): A data/hora de início não pode ultrapassar o limite máximo de 90 dias a partir do momento da solicitação.");
+            throw new BusinessRuleException("Erro (RN01): A data/hora de início não pode ultrapassar o limite máximo de 90 dias a partir do momento da solicitação.");
         }
 
         // RN02 – Impedimento de Conflito de Horários
@@ -84,23 +100,23 @@ public class ReservaService {
                 reserva.getId()
         );
         if (!conflitos.isEmpty()) {
-            throw new RuntimeException("Erro (RN02): Conflito de horários! Já existe uma reserva ativa (PENDENTE ou CONFIRMADA) para esta área de lazer no período informado.");
+            throw new ConflictException("Erro (RN02): Conflito de horários! Já existe uma reserva ativa (PENDENTE ou CONFIRMADA) para esta área de lazer no período informado.");
         }
 
         // RN03 – Limite de Capacidade de Convidados
         Integer qtdConvidados = reserva.getQtdConvidados();
         if (qtdConvidados == null || qtdConvidados < 1) {
-            throw new RuntimeException("Erro (RN03): O número de convidados deve ser maior ou igual a 1.");
+            throw new BadRequestException("Erro (RN03): O número de convidados deve ser maior ou igual a 1.");
         }
         if (areaLazer.getCapacidadeMaxima() != null && qtdConvidados > areaLazer.getCapacidadeMaxima()) {
-            throw new RuntimeException("Erro (RN03): O número de convidados (" + qtdConvidados + 
+            throw new BusinessRuleException("Erro (RN03): O número de convidados (" + qtdConvidados + 
                     ") ultrapassa a capacidade máxima da área de lazer selecionada (" + areaLazer.getCapacidadeMaxima() + ").");
         }
 
         // RN04 – Cota de Reservas Ativas por Morador
         long reservasAtivas = reservaRepository.countReservasAtivasPorMorador(morador.getId());
         if (reservasAtivas >= 2) {
-            throw new RuntimeException("Erro (RN04): O morador já atingiu o limite de 2 reservas ativas (PENDENTE ou CONFIRMADA) simultaneamente no sistema.");
+            throw new BusinessRuleException("Erro (RN04): O morador já atingiu o limite de 2 reservas ativas (PENDENTE ou CONFIRMADA) simultaneamente no sistema.");
         }
 
         // RN05 – Status Inicial e Notificação Automática
@@ -130,12 +146,12 @@ public class ReservaService {
         Reserva reserva = mostrarReservaPorId(id);
 
         if ("CANCELADA".equalsIgnoreCase(reserva.getStatus())) {
-            throw new RuntimeException("Erro: A reserva já se encontra cancelada.");
+            throw new BusinessRuleException("Erro: A reserva já se encontra cancelada.");
         }
 
         LocalDateTime agora = LocalDateTime.now();
         if (agora.plusHours(24).isAfter(reserva.getDataHoraInicio())) {
-            throw new RuntimeException("Erro (RN06): O cancelamento só pode ser realizado com antecedência mínima de 24 horas antes da data/hora de início agendada.");
+            throw new BusinessRuleException("Erro (RN06): O cancelamento só pode ser realizado com antecedência mínima de 24 horas antes da data/hora de início agendada.");
         }
 
         reserva.setStatus("CANCELADA");
@@ -160,7 +176,7 @@ public class ReservaService {
         Reserva reserva = mostrarReservaPorId(id);
 
         if (!"PENDENTE".equalsIgnoreCase(reserva.getStatus())) {
-            throw new RuntimeException("Erro: Apenas reservas com status PENDENTE podem ser confirmadas.");
+            throw new BusinessRuleException("Erro: Apenas reservas com status PENDENTE podem ser confirmadas.");
         }
 
         reserva.setStatus("CONFIRMADA");
@@ -185,7 +201,7 @@ public class ReservaService {
         Reserva reserva = mostrarReservaPorId(id);
 
         if (!"PENDENTE".equalsIgnoreCase(reserva.getStatus())) {
-            throw new RuntimeException("Erro: Apenas reservas com status PENDENTE podem ser recusadas.");
+            throw new BusinessRuleException("Erro: Apenas reservas com status PENDENTE podem ser recusadas.");
         }
 
         reserva.setStatus("RECUSADA");
@@ -212,7 +228,7 @@ public class ReservaService {
 
     public Reserva mostrarReservaPorId(Long id) {
         return reservaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Erro: Reserva não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Erro: Reserva não encontrada"));
     }
 
     public List<Reserva> listarReservasPorMorador(Long moradorId) {

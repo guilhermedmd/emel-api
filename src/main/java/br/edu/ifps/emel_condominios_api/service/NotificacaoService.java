@@ -2,6 +2,7 @@ package br.edu.ifps.emel_condominios_api.service;
 
 import org.springframework.stereotype.Service;
 
+import br.edu.ifps.emel_condominios_api.exception.ResourceNotFoundException;
 import br.edu.ifps.emel_condominios_api.model.Notificacao;
 import br.edu.ifps.emel_condominios_api.repository.NotificacaoRepository;
 
@@ -19,7 +20,7 @@ public class NotificacaoService {
     }
 
     public Notificacao mostrarNotificacao(Long id){
-        return notificacaoRepository.findById(id).orElseThrow(() -> new RuntimeException("Erro: notificação não encontrada"));
+        return notificacaoRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Erro: notificação não encontrada"));
     }
 
     public Notificacao editarNotificacao(Long id, Notificacao novaNotificacao){
@@ -28,7 +29,7 @@ public class NotificacaoService {
             notificacao.setDescricao(novaNotificacao.getDescricao());
             notificacao.setTipo(novaNotificacao.getTipo());
             return notificacaoRepository.save(notificacao);
-        }).orElseThrow(() -> new RuntimeException("Erro: notificação não encontrada"));
+        }).orElseThrow(() -> new ResourceNotFoundException("Erro: notificação não encontrada"));
     }
 
     public void deletarNotificacao(Long id){

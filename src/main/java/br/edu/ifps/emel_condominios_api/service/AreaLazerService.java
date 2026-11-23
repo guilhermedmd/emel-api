@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import br.edu.ifps.emel_condominios_api.exception.ResourceNotFoundException;
 import br.edu.ifps.emel_condominios_api.model.AreaLazer;
 import br.edu.ifps.emel_condominios_api.repository.AreaLazerRepository;
 
@@ -26,7 +27,7 @@ public class AreaLazerService {
 
     public AreaLazer mostrarAreaLazerPorId(Long id) {
         return areaLazerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Erro: Área de lazer não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Erro: Área de lazer não encontrada"));
     }
 
     public AreaLazer editarAreaLazer(Long id, AreaLazer novaAreaLazer) {
@@ -36,7 +37,7 @@ public class AreaLazerService {
             area.setCapacidadeMaxima(novaAreaLazer.getCapacidadeMaxima());
             area.setStatus(novaAreaLazer.getStatus());
             return areaLazerRepository.save(area);
-        }).orElseThrow(() -> new RuntimeException("Erro: Área de lazer não encontrada"));
+        }).orElseThrow(() -> new ResourceNotFoundException("Erro: Área de lazer não encontrada"));
     }
 
     public void deletarAreaLazer(Long id) {

@@ -3,6 +3,8 @@ package br.edu.ifps.emel_condominios_api.service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import br.edu.ifps.emel_condominios_api.exception.BadRequestException;
+import br.edu.ifps.emel_condominios_api.exception.ResourceNotFoundException;
 import br.edu.ifps.emel_condominios_api.model.Morador;
 import br.edu.ifps.emel_condominios_api.repository.MoradorRepository;
 
@@ -19,9 +21,9 @@ public class MoradorService {
 
     public String login(String email, String senha) {
         Morador morador = moradorRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Erro: Email de morador não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Erro: Email de morador não encontrado"));
         if (morador.getSenha() == null || !passwordEncoder.matches(senha, morador.getSenha())) {
-            throw new RuntimeException("Erro: Senha incorreta");
+            throw new BadRequestException("Erro: Senha incorreta");
         }
         return morador.getEmail();
     }
@@ -42,7 +44,7 @@ public class MoradorService {
     }
 
     public Morador mostrarMoradorPorId(Long id) {
-        return moradorRepository.findById(id).orElseThrow(() -> new RuntimeException("Morador não encontrado"));
+        return moradorRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Erro: Morador não encontrado"));
     }
 
     public Morador editarMorador(Long id, Morador novoMorador) {
@@ -55,7 +57,7 @@ public class MoradorService {
                 morador.setSenha(passwordEncoder.encode(novoMorador.getSenha()));
             }
             return moradorRepository.save(morador);
-        }).orElseThrow(() -> new RuntimeException("Morador não encontrado"));
+        }).orElseThrow(() -> new ResourceNotFoundException("Erro: Morador não encontrado"));
     }
 
     public void deletarMorador(Long id) {
