@@ -42,9 +42,14 @@ import br.edu.ifps.emel_condominios_api.repository.ReservaRepository;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Testes unitários para ReservaService.
- * Usa implementações fake de repositórios para evitar problemas com
- * Mockito inline mock maker no Java 25.
+ * DRIVER DE TESTE (Test Driver):
+ * Esta suíte JUnit 5 atua como driver de teste acionando diretamente os métodos da
+ * classe sob teste (ReservaService) em abordagem estrutural / caixa-branca (UC01).
+ *
+ * MOCKS / FAKES E STUBS:
+ * - Os repositórios Fake (FakeReservaRepository, FakeMoradorRepository, FakeAreaLazerRepository,
+ *   FakeNotificacaoRepository) isolam a camada de persistência (sem MySQL/JPA).
+ * - java.time.Clock.fixed() atua como stub de tempo determinístico (27/11/2026 10:00:00).
  */
 class ReservaServiceTest {
 
@@ -763,6 +768,137 @@ class ReservaServiceTest {
         void deveRetornar404ReservaInexistente() {
             assertThrows(ResourceNotFoundException.class,
                     () -> reservaService.cancelarReserva(999L, "joao@email.com", "MORADOR"));
+        }
+    }
+
+    // ========== COBERTURA ESTRUTURAL COMPLETA (BRANCHES E MÉTODOS RESTANTES) ==========
+
+    @Nested
+    @DisplayName("Cobertura estrutural completa de ReservaService")
+    class CoberturaEstruturalCompleta {
+
+        @Test
+        @DisplayName("Deve instanciar ReservaService usando o construtor padrão sem Clock")
+        void deveInstanciarComConstrutorPadraoSemClock() {
+            ReservaService servicePadrao = new ReservaService(
+                    reservaRepository, moradorRepository, areaLazerRepository, notificacaoRepository
+            );
+            assertNotNull(servicePadrao);
+        }
+
+        @Test
+        @DisplayName("buscarMoradorPorEmail deve retornar null para e-mail nulo, morador para válido e null para inexistente")
+        void deveTestarBuscarMoradorPorEmail() {
+            assertNull(reservaService.buscarMoradorPorEmail(null));
+            assertNotNull(reservaService.buscarMoradorPorEmail("joao@email.com"));
+            assertNull(reservaService.buscarMoradorPorEmail("naoexiste@email.com"));
+        }
+
+        @Test
+        @DisplayName("criarReserva deve aceitar área com status null e capacidadeMaxima null")
+        void deveAceitarAreaComStatusECapacidadeNulos() {
+            areaLazer.setStatus(null);
+            areaLazer.setCapacidadeMaxima(null);
+            areaLazerRepository.save(areaLazer);
+
+            Reserva reserva = criarReservaValida(morador1);
+            reserva.setQtdConvidados(100);
+
+            Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
+            assertNotNull(salva.getId());
+        }
+
+        @Test
+        @DisplayName("cancelarReserva deve lançar ForbiddenException quando MORADOR tenta cancelar reserva sem morador associado")
+        void cancelarReservaSemMoradorComoMoradorDeveLancarForbidden() {
+            Reserva reservaSemMorador = new Reserva();
+            reservaSemMorador.setId(50L);
+            reservaSemMorador.setStatus("PENDENTE");
+            reservaSemMorador.setDataHoraInicio(AGORA_MOCKADO.plusHours(30));
+            reservaRepository.save(reservaSemMorador);
+
+            assertThrows(ForbiddenException.class,
+                    () -> reservaService.cancelarReserva(50L, "joao@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("cancelarReserva deve rejeitar reserva com status diferente de PENDENTE e CONFIRMADA (ex: CONCLUIDA)")
+        void cancelarReservaComStatusInvalidoDeveLancarBusinessRule() {
+            Reserva reserva = criarReservaValida(morador1);
+            Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
+            salva.setStatus("CONCLUIDA");
+            reservaRepository.save(salva);
+
+            assertThrows(BusinessRuleException.class,
+                    () -> reservaService.cancelarReserva(salva.getId(), "joao@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("confirmarReserva deve rejeitar reserva que não está PENDENTE")
+        void confirmarReservaNaoPendenteDeveLancarBusinessRule() {
+            Reserva reserva = criarReservaValida(morador1);
+            Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
+            reservaService.confirmarReserva(salva.getId());
+
+            assertThrows(BusinessRuleException.class,
+                    () -> reservaService.confirmarReserva(salva.getId()));
+        }
+
+        @Test
+        @DisplayName("recusarReserva deve rejeitar reserva que não está PENDENTE")
+        void recusarReservaNaoPendenteDeveLancarBusinessRule() {
+            Reserva reserva = criarReservaValida(morador1);
+            Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
+            reservaService.recusarReserva(salva.getId());
+
+            assertThrows(BusinessRuleException.class,
+                    () -> reservaService.recusarReserva(salva.getId()));
+        }
+
+        @Test
+        @DisplayName("mostrarReservaPorId deve permitir ao MORADOR visualizar sua própria reserva e bloquear se morador for nulo")
+        void mostrarReservaPorIdMoradorProprioESemMorador() {
+            Reserva reserva = criarReservaValida(morador1);
+            Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
+
+            Reserva propria = reservaService.mostrarReservaPorId(salva.getId(), "joao@email.com", "MORADOR");
+            assertEquals(salva.getId(), propria.getId());
+
+            Reserva semMorador = new Reserva();
+            semMorador.setId(51L);
+            reservaRepository.save(semMorador);
+
+            assertThrows(ForbiddenException.class,
+                    () -> reservaService.mostrarReservaPorId(51L, "joao@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("listarReservasPorMorador autenticado deve cobrir próprio morador, SINDICO e morador autenticado inexistente")
+        void listarReservasPorMoradorCenariosCompletos() {
+            Reserva reserva = criarReservaValida(morador1);
+            reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
+
+            List<Reserva> proprias = reservaService.listarReservasPorMorador(morador1.getId(), "joao@email.com", "MORADOR");
+            assertEquals(1, proprias.size());
+
+            List<Reserva> peloSindico = reservaService.listarReservasPorMorador(morador1.getId(), "sindico@email.com", "SINDICO");
+            assertEquals(1, peloSindico.size());
+
+            assertThrows(ResourceNotFoundException.class,
+                    () -> reservaService.listarReservasPorMorador(morador1.getId(), "desconhecido@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("listarTodasReservas, listarReservasPorMorador(id) e deletarReserva")
+        void metodosAdministrativosEDeletar() {
+            Reserva r1 = criarReservaValida(morador1);
+            Reserva salva = reservaService.criarReserva(r1, "joao@email.com", "MORADOR");
+
+            assertEquals(1, reservaService.listarTodasReservas().size());
+            assertEquals(1, reservaService.listarReservasPorMorador(morador1.getId()).size());
+
+            reservaService.deletarReserva(salva.getId());
+            assertEquals(0, reservaService.listarTodasReservas().size());
         }
     }
 

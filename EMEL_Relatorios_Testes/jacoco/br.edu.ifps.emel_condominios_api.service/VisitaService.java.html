@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VisitaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.service</a> &gt; <span class="el_source">VisitaService.java</span></div><h1>VisitaService.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.service;
+
+import org.springframework.stereotype.Service;
+
+import br.edu.ifps.emel_condominios_api.model.Visita;
+import br.edu.ifps.emel_condominios_api.repository.VisitaRepository;
+
+@Service
+public class VisitaService {
+    
+    private final VisitaRepository visitaRepository;
+
+<span class="nc" id="L13">    public VisitaService(VisitaRepository visitaRepository) {</span>
+<span class="nc" id="L14">        this.visitaRepository = visitaRepository;</span>
+<span class="nc" id="L15">    }</span>
+
+    public Visita cadastrarVisita(Visita novaVisita){
+<span class="nc" id="L18">        return visitaRepository.save(novaVisita);</span>
+    }
+
+    public Visita mostrarVisitaPorId(Long id){
+<span class="nc" id="L22">        return visitaRepository.findById(id).orElseThrow(() -&gt; new RuntimeException(&quot;Erro: Visita não encontrada&quot;));</span>
+    }
+
+    public Visita editarVisita(Long id, Visita novaVisita){
+<span class="nc" id="L26">        return visitaRepository.findById(id).map(visita -&gt; {</span>
+<span class="nc" id="L27">            visita.setTipo(novaVisita.getTipo());</span>
+<span class="nc" id="L28">            visita.setData(novaVisita.getData());</span>
+<span class="nc" id="L29">            visita.setVisitantes(novaVisita.getVisitantes());</span>
+<span class="nc" id="L30">            return visitaRepository.save(visita);</span>
+<span class="nc" id="L31">        }).orElseThrow(() -&gt; new RuntimeException(&quot;Erro: Visita não encontrada&quot;));</span>
+    }
+
+    public void deletarVisita(Long id){
+<span class="nc" id="L35">        visitaRepository.deleteById(id);</span>
+<span class="nc" id="L36">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

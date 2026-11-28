@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VisitanteService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.service</a> &gt; <span class="el_source">VisitanteService.java</span></div><h1>VisitanteService.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.service;
+
+import org.springframework.stereotype.Service;
+
+import br.edu.ifps.emel_condominios_api.model.Visitante;
+import br.edu.ifps.emel_condominios_api.repository.VisitanteRepository;
+
+@Service
+public class VisitanteService {
+
+    private final VisitanteRepository visitanteRepository;
+
+<span class="nc" id="L13">    public VisitanteService(VisitanteRepository visitanteRepository) {</span>
+<span class="nc" id="L14">        this.visitanteRepository = visitanteRepository;</span>
+<span class="nc" id="L15">    }</span>
+
+    public Visitante cadastrarVisitante(Visitante novoVisitante){
+<span class="nc" id="L18">        return visitanteRepository.save(novoVisitante);</span>
+    }
+
+    public Visitante mostrarVisitantePorId(Long id){
+<span class="nc" id="L22">        return visitanteRepository.findById(id).orElseThrow(() -&gt; new RuntimeException(&quot;Erro: Visitante não encontrado&quot;));</span>
+    }
+
+    public Visitante MostrarVisitantePorId(Long id){
+<span class="nc" id="L26">        return mostrarVisitantePorId(id);</span>
+    }
+
+    public Visitante editarVisitante(Long id, Visitante novoVisitante){
+<span class="nc" id="L30">        return visitanteRepository.findById(id).map(visitante -&gt; {</span>
+<span class="nc" id="L31">            visitante.setNome(novoVisitante.getNome());</span>
+<span class="nc" id="L32">            visitante.setEmail(novoVisitante.getEmail());</span>
+<span class="nc" id="L33">            visitante.setTelefone(novoVisitante.getTelefone());</span>
+<span class="nc" id="L34">            visitante.setCpf(novoVisitante.getCpf());</span>
+<span class="nc" id="L35">            return visitanteRepository.save(visitante);</span>
+<span class="nc" id="L36">        }).orElseThrow(() -&gt; new RuntimeException(&quot;Erro: Visitante não encontrado&quot;));</span>
+    }
+
+    public void deletarVisitante(Long id){
+<span class="nc" id="L40">        visitanteRepository.deleteById(id);</span>
+<span class="nc" id="L41">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

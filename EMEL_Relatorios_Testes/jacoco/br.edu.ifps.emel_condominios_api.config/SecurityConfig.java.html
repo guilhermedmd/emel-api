@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.config</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import jakarta.servlet.DispatcherType;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    private final JwtFilter jwtFilter;
+
+<span class="nc" id="L20">    public SecurityConfig(JwtFilter jwtFilter) {</span>
+<span class="nc" id="L21">        this.jwtFilter = jwtFilter;</span>
+<span class="nc" id="L22">    }</span>
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+<span class="nc" id="L26">        return http</span>
+<span class="nc" id="L27">                .csrf(csrf -&gt; csrf.disable())</span>
+<span class="nc" id="L28">                .sessionManagement(session -&gt; session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="nc" id="L29">                .authorizeHttpRequests(auth -&gt; auth</span>
+<span class="nc" id="L30">                        .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()</span>
+<span class="nc" id="L31">                        .requestMatchers(&quot;/auth/**&quot;, &quot;/error&quot;).permitAll()</span>
+                        // Rotas de Reserva permitidas para Morador e Síndico:
+<span class="nc" id="L33">                        .requestMatchers(HttpMethod.POST, &quot;/reserva&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+<span class="nc" id="L34">                        .requestMatchers(HttpMethod.GET, &quot;/reserva/morador/{moradorId}&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+<span class="nc" id="L35">                        .requestMatchers(HttpMethod.GET, &quot;/reserva/area-lazer/{areaLazerId}&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+<span class="nc" id="L36">                        .requestMatchers(HttpMethod.PUT, &quot;/reserva/{id}/cancelar&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+<span class="nc" id="L37">                        .requestMatchers(HttpMethod.GET, &quot;/reserva/{id}&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+                        // Demais rotas de Reserva exclusivas para Síndico:
+<span class="nc" id="L39">                        .requestMatchers(&quot;/reserva/**&quot;).hasRole(&quot;SINDICO&quot;)</span>
+                        // Rotas de Notificação permitidas para Morador e Síndico:
+<span class="nc" id="L41">                        .requestMatchers(HttpMethod.POST, &quot;/notificacao&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+<span class="nc" id="L42">                        .requestMatchers(HttpMethod.GET, &quot;/notificacao/{id}&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+<span class="nc" id="L43">                        .requestMatchers(HttpMethod.PUT, &quot;/notificacao/{id}&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+                        // Demais rotas de Notificação exclusivas para Síndico:
+<span class="nc" id="L45">                        .requestMatchers(&quot;/notificacao/**&quot;).hasRole(&quot;SINDICO&quot;)</span>
+                        // Rotas de Área de Lazer permitidas para Morador e Síndico:
+<span class="nc" id="L47">                        .requestMatchers(HttpMethod.GET, &quot;/area-lazer&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+<span class="nc" id="L48">                        .requestMatchers(HttpMethod.GET, &quot;/area-lazer/{id}&quot;).hasAnyRole(&quot;MORADOR&quot;, &quot;SINDICO&quot;)</span>
+                        // Demais rotas de Área de Lazer exclusivas para Síndico:
+<span class="nc" id="L50">                        .requestMatchers(&quot;/area-lazer/**&quot;).hasRole(&quot;SINDICO&quot;)</span>
+                        // Todas as demais rotas são exclusivas do Síndico:
+<span class="nc" id="L52">                        .requestMatchers(&quot;/morador/**&quot;).hasRole(&quot;SINDICO&quot;)</span>
+<span class="nc" id="L53">                        .requestMatchers(&quot;/visitante/**&quot;).hasRole(&quot;SINDICO&quot;)</span>
+<span class="nc" id="L54">                        .requestMatchers(&quot;/visita/**&quot;).hasRole(&quot;SINDICO&quot;)</span>
+<span class="nc" id="L55">                        .anyRequest().hasRole(&quot;SINDICO&quot;)</span>
+                )
+<span class="nc" id="L57">                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)</span>
+<span class="nc" id="L58">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

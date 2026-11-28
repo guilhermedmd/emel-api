@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Reserva.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.model</a> &gt; <span class="el_source">Reserva.java</span></div><h1>Reserva.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.model;
+
+import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Table(name = &quot;reserva&quot;)
+public class Reserva {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = &quot;reserva_id&quot;)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = &quot;morador_id&quot;)
+    private Morador morador;
+
+    @ManyToOne
+    @JoinColumn(name = &quot;area_lazer_id&quot;)
+    private AreaLazer areaLazer;
+
+    @JsonFormat(pattern = &quot;yyyy-MM-dd'T'HH:mm:ss&quot;)
+    @Column(name = &quot;data_hora_inicio&quot;)
+    private LocalDateTime dataHoraInicio;
+
+    @JsonFormat(pattern = &quot;yyyy-MM-dd'T'HH:mm:ss&quot;)
+    @Column(name = &quot;data_hora_fim&quot;)
+    private LocalDateTime dataHoraFim;
+
+    @Column(name = &quot;tipo_evento&quot;)
+    private String tipoEvento;
+
+    @Column(name = &quot;qtd_convidados&quot;)
+    private Integer qtdConvidados;
+
+    private String status;
+    private String observacoes;
+
+    @JsonFormat(pattern = &quot;yyyy-MM-dd'T'HH:mm:ss&quot;)
+    @Column(name = &quot;data_solicitacao&quot;)
+    private LocalDateTime dataSolicitacao;
+
+<span class="fc" id="L61">    public Reserva(Long id) {</span>
+<span class="fc" id="L62">        this.id = id;</span>
+<span class="fc" id="L63">    }</span>
+
+<span class="fc" id="L65">    public Reserva(Morador morador, AreaLazer areaLazer, LocalDateTime dataHoraInicio, LocalDateTime dataHoraFim, String tipoEvento, Integer qtdConvidados, String status, String observacoes, LocalDateTime dataSolicitacao) {</span>
+<span class="fc" id="L66">        this.morador = morador;</span>
+<span class="fc" id="L67">        this.areaLazer = areaLazer;</span>
+<span class="fc" id="L68">        this.dataHoraInicio = dataHoraInicio;</span>
+<span class="fc" id="L69">        this.dataHoraFim = dataHoraFim;</span>
+<span class="fc" id="L70">        this.tipoEvento = tipoEvento;</span>
+<span class="fc" id="L71">        this.qtdConvidados = qtdConvidados;</span>
+<span class="fc" id="L72">        this.status = status;</span>
+<span class="fc" id="L73">        this.observacoes = observacoes;</span>
+<span class="fc" id="L74">        this.dataSolicitacao = dataSolicitacao;</span>
+<span class="fc" id="L75">    }</span>
+
+<span class="fc" id="L77">    public Reserva(Morador morador, AreaLazer areaLazer, LocalDateTime dataHoraInicio, LocalDateTime dataHoraFim, String tipoEvento, Integer qtdConvidados, String observacoes) {</span>
+<span class="fc" id="L78">        this.morador = morador;</span>
+<span class="fc" id="L79">        this.areaLazer = areaLazer;</span>
+<span class="fc" id="L80">        this.dataHoraInicio = dataHoraInicio;</span>
+<span class="fc" id="L81">        this.dataHoraFim = dataHoraFim;</span>
+<span class="fc" id="L82">        this.tipoEvento = tipoEvento;</span>
+<span class="fc" id="L83">        this.qtdConvidados = qtdConvidados;</span>
+<span class="fc" id="L84">        this.observacoes = observacoes;</span>
+<span class="fc" id="L85">    }</span>
+
+    public Long getMoradorId() {
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        return this.morador != null ? this.morador.getId() : null;</span>
+    }
+
+    public void setMoradorId(Long moradorId) {
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (moradorId != null) {</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            if (this.morador == null) {</span>
+<span class="fc" id="L94">                this.morador = new Morador();</span>
+            }
+<span class="fc" id="L96">            this.morador.setId(moradorId);</span>
+        }
+<span class="fc" id="L98">    }</span>
+
+    public Long getAreaLazerId() {
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        return this.areaLazer != null ? this.areaLazer.getId() : null;</span>
+    }
+
+    public void setAreaLazerId(Long areaLazerId) {
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        if (areaLazerId != null) {</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">            if (this.areaLazer == null) {</span>
+<span class="fc" id="L107">                this.areaLazer = new AreaLazer();</span>
+            }
+<span class="fc" id="L109">            this.areaLazer.setId(areaLazerId);</span>
+        }
+<span class="fc" id="L111">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

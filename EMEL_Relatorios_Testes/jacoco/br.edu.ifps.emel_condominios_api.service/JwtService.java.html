@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.service</a> &gt; <span class="el_source">JwtService.java</span></div><h1>JwtService.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.service;
+
+import java.util.Date;
+
+import org.springframework.stereotype.Service;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+@Service
+<span class="nc" id="L11">public class JwtService {</span>
+<span class="nc" id="L12">    private final String SECRETKEY = &quot;pneumocitosegraficaazulestrela123456&quot;;</span>
+
+    public String gerarTokens(String email) {
+<span class="nc" id="L15">        return gerarTokens(email, &quot;SINDICO&quot;);</span>
+    }
+
+    public String gerarTokens(String email, String role) {
+<span class="nc" id="L19">        return Jwts.builder()</span>
+<span class="nc" id="L20">                .subject(email)</span>
+<span class="nc" id="L21">                .claim(&quot;role&quot;, role)</span>
+<span class="nc" id="L22">                .issuedAt(new Date())</span>
+<span class="nc" id="L23">                .expiration(new Date(System.currentTimeMillis() + 86400000))</span>
+<span class="nc" id="L24">                .signWith(Keys.hmacShaKeyFor(SECRETKEY.getBytes()))</span>
+<span class="nc" id="L25">                .compact();</span>
+    }
+
+    public String extrairEmail(String token) {
+<span class="nc" id="L29">        return Jwts.parser()</span>
+<span class="nc" id="L30">                .verifyWith(Keys.hmacShaKeyFor(SECRETKEY.getBytes()))</span>
+<span class="nc" id="L31">                .build()</span>
+<span class="nc" id="L32">                .parseSignedClaims(token)</span>
+<span class="nc" id="L33">                .getPayload()</span>
+<span class="nc" id="L34">                .getSubject();</span>
+    }
+
+    public String extrairRole(String token) {
+<span class="nc" id="L38">        Object role = Jwts.parser()</span>
+<span class="nc" id="L39">                .verifyWith(Keys.hmacShaKeyFor(SECRETKEY.getBytes()))</span>
+<span class="nc" id="L40">                .build()</span>
+<span class="nc" id="L41">                .parseSignedClaims(token)</span>
+<span class="nc" id="L42">                .getPayload()</span>
+<span class="nc" id="L43">                .get(&quot;role&quot;);</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        return role != null ? role.toString() : null;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

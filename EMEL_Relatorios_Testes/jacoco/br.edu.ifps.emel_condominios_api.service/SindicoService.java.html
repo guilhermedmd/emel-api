@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SindicoService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.service</a> &gt; <span class="el_source">SindicoService.java</span></div><h1>SindicoService.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.service;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import br.edu.ifps.emel_condominios_api.model.Sindico;
+import br.edu.ifps.emel_condominios_api.repository.SindicoRepository;
+
+@Service
+public class SindicoService {
+    
+    private SindicoRepository sindicoRepository;
+    private PasswordEncoder passwordEncoder;
+
+<span class="nc" id="L15">    public SindicoService(SindicoRepository sindicoRepository, PasswordEncoder passwordEncoder) {</span>
+<span class="nc" id="L16">        this.sindicoRepository = sindicoRepository;</span>
+<span class="nc" id="L17">        this.passwordEncoder = passwordEncoder;</span>
+<span class="nc" id="L18">    }</span>
+
+    public String login(Sindico sindico){
+<span class="nc" id="L21">        Sindico sindicoRepo = sindicoRepository.findByEmail(sindico.getEmail()).orElseThrow(() -&gt; new RuntimeException(&quot;Erro: Email não encontrado&quot;));</span>
+<span class="nc bnc" id="L22" title="All 2 branches missed.">        if(!passwordEncoder.matches(sindico.getSenha(), sindicoRepo.getSenha())){</span>
+<span class="nc" id="L23">            throw new RuntimeException(&quot;Erro: Senha incorreta&quot;);</span>
+        }
+<span class="nc" id="L25">        return sindico.getEmail();</span>
+    }
+
+    public String register(Sindico novoSindico){
+<span class="nc" id="L29">        novoSindico.setSenha(passwordEncoder.encode(novoSindico.getSenha()));</span>
+<span class="nc" id="L30">        Sindico sindico = sindicoRepository.save(novoSindico);</span>
+<span class="nc" id="L31">        return sindico.getEmail();</span>
+    }
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

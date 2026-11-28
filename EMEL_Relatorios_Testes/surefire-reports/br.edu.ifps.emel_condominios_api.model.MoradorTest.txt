@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: br.edu.ifps.emel_condominios_api.model.MoradorTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.021 s -- in br.edu.ifps.emel_condominios_api.model.MoradorTest

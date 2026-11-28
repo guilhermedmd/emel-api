@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MoradorService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.service</a> &gt; <span class="el_source">MoradorService.java</span></div><h1>MoradorService.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.service;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import br.edu.ifps.emel_condominios_api.exception.BadRequestException;
+import br.edu.ifps.emel_condominios_api.exception.ResourceNotFoundException;
+import br.edu.ifps.emel_condominios_api.model.Morador;
+import br.edu.ifps.emel_condominios_api.repository.MoradorRepository;
+
+@Service
+public class MoradorService {
+
+    private final MoradorRepository moradorRepository;
+    private final PasswordEncoder passwordEncoder;
+
+<span class="nc" id="L17">    public MoradorService(MoradorRepository moradorRepository, PasswordEncoder passwordEncoder) {</span>
+<span class="nc" id="L18">        this.moradorRepository = moradorRepository;</span>
+<span class="nc" id="L19">        this.passwordEncoder = passwordEncoder;</span>
+<span class="nc" id="L20">    }</span>
+
+    public String login(String email, String senha) {
+<span class="nc" id="L23">        Morador morador = moradorRepository.findByEmail(email)</span>
+<span class="nc" id="L24">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Erro: Email de morador não encontrado&quot;));</span>
+<span class="nc bnc" id="L25" title="All 4 branches missed.">        if (morador.getSenha() == null || !passwordEncoder.matches(senha, morador.getSenha())) {</span>
+<span class="nc" id="L26">            throw new BadRequestException(&quot;Erro: Senha incorreta&quot;);</span>
+        }
+<span class="nc" id="L28">        return morador.getEmail();</span>
+    }
+
+    public String register(Morador novoMorador) {
+<span class="nc bnc" id="L32" title="All 4 branches missed.">        if (novoMorador.getSenha() != null &amp;&amp; !novoMorador.getSenha().isBlank()) {</span>
+<span class="nc" id="L33">            novoMorador.setSenha(passwordEncoder.encode(novoMorador.getSenha()));</span>
+        }
+<span class="nc" id="L35">        Morador moradorSalvo = moradorRepository.save(novoMorador);</span>
+<span class="nc" id="L36">        return moradorSalvo.getEmail();</span>
+    }
+
+    public Morador criarMorador(Morador novoMorador) {
+<span class="nc bnc" id="L40" title="All 4 branches missed.">        if (novoMorador.getSenha() != null &amp;&amp; !novoMorador.getSenha().isBlank()) {</span>
+<span class="nc" id="L41">            novoMorador.setSenha(passwordEncoder.encode(novoMorador.getSenha()));</span>
+        }
+<span class="nc" id="L43">        return moradorRepository.save(novoMorador);</span>
+    }
+
+    public Morador mostrarMoradorPorId(Long id) {
+<span class="nc" id="L47">        return moradorRepository.findById(id).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Erro: Morador não encontrado&quot;));</span>
+    }
+
+    public Morador editarMorador(Long id, Morador novoMorador) {
+<span class="nc" id="L51">        return moradorRepository.findById(id).map(morador -&gt; {</span>
+<span class="nc" id="L52">            morador.setNome(novoMorador.getNome());</span>
+<span class="nc" id="L53">            morador.setEmail(novoMorador.getEmail());</span>
+<span class="nc" id="L54">            morador.setTelefone(novoMorador.getTelefone());</span>
+<span class="nc" id="L55">            morador.setCpf(novoMorador.getCpf());</span>
+<span class="nc bnc" id="L56" title="All 4 branches missed.">            if (novoMorador.getSenha() != null &amp;&amp; !novoMorador.getSenha().isBlank()) {</span>
+<span class="nc" id="L57">                morador.setSenha(passwordEncoder.encode(novoMorador.getSenha()));</span>
+            }
+<span class="nc" id="L59">            return moradorRepository.save(morador);</span>
+<span class="nc" id="L60">        }).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Erro: Morador não encontrado&quot;));</span>
+    }
+
+    public void deletarMorador(Long id) {
+<span class="nc" id="L64">        moradorRepository.deleteById(id);</span>
+<span class="nc" id="L65">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

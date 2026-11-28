@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.service</a> &gt; <span class="el_source">ReservaService.java</span></div><h1>ReservaService.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.service;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.edu.ifps.emel_condominios_api.exception.BadRequestException;
+import br.edu.ifps.emel_condominios_api.exception.BusinessRuleException;
+import br.edu.ifps.emel_condominios_api.exception.ConflictException;
+import br.edu.ifps.emel_condominios_api.exception.ForbiddenException;
+import br.edu.ifps.emel_condominios_api.exception.ResourceNotFoundException;
+import br.edu.ifps.emel_condominios_api.model.AreaLazer;
+import br.edu.ifps.emel_condominios_api.model.Morador;
+import br.edu.ifps.emel_condominios_api.model.Notificacao;
+import br.edu.ifps.emel_condominios_api.model.Reserva;
+import br.edu.ifps.emel_condominios_api.repository.AreaLazerRepository;
+import br.edu.ifps.emel_condominios_api.repository.MoradorRepository;
+import br.edu.ifps.emel_condominios_api.repository.NotificacaoRepository;
+import br.edu.ifps.emel_condominios_api.repository.ReservaRepository;
+
+@Service
+public class ReservaService {
+
+    private final ReservaRepository reservaRepository;
+    private final MoradorRepository moradorRepository;
+    private final AreaLazerRepository areaLazerRepository;
+    private final NotificacaoRepository notificacaoRepository;
+    private final Clock clock;
+
+    @Autowired
+    public ReservaService(ReservaRepository reservaRepository,
+                          MoradorRepository moradorRepository,
+                          AreaLazerRepository areaLazerRepository,
+                          NotificacaoRepository notificacaoRepository) {
+<span class="fc" id="L41">        this(reservaRepository, moradorRepository, areaLazerRepository, notificacaoRepository, Clock.systemDefaultZone());</span>
+<span class="fc" id="L42">    }</span>
+
+    public ReservaService(ReservaRepository reservaRepository,
+                          MoradorRepository moradorRepository,
+                          AreaLazerRepository areaLazerRepository,
+                          NotificacaoRepository notificacaoRepository,
+<span class="fc" id="L48">                          Clock clock) {</span>
+<span class="fc" id="L49">        this.reservaRepository = reservaRepository;</span>
+<span class="fc" id="L50">        this.moradorRepository = moradorRepository;</span>
+<span class="fc" id="L51">        this.areaLazerRepository = areaLazerRepository;</span>
+<span class="fc" id="L52">        this.notificacaoRepository = notificacaoRepository;</span>
+<span class="fc" id="L53">        this.clock = clock;</span>
+<span class="fc" id="L54">    }</span>
+
+    /**
+     * Busca o Morador pelo e-mail extraído do JWT.
+     * Retorna null se o e-mail for nulo (caso de síndico sem cadastro de morador).
+     */
+    public Morador buscarMoradorPorEmail(String email) {
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (email == null) return null;</span>
+<span class="fc" id="L62">        return moradorRepository.findByEmail(email).orElse(null);</span>
+    }
+
+    /**
+     * Cria uma reserva garantindo:
+     * - data_solicitacao definida pelo servidor (item 4)
+     * - ID nulo para impedir sobrescrita (item 4)
+     * - Propriedade do morador via JWT quando role = MORADOR (item 1)
+     * - Atomicidade reserva + notificação via @Transactional (item 3)
+     * - Todas as RNs (RN01 a RN05)
+     */
+    @Transactional
+    public Reserva criarReserva(Reserva reserva, String emailAutenticado, String roleAutenticado) {
+        // Impedir sobrescrita de reserva existente
+<span class="fc" id="L76">        reserva.setId(null);</span>
+
+        // data_solicitacao sempre definida pelo servidor
+<span class="fc" id="L79">        reserva.setDataSolicitacao(LocalDateTime.now(clock));</span>
+
+<span class="fc bfc" id="L81" title="All 4 branches covered.">        if (reserva.getMorador() == null || reserva.getMorador().getId() == null) {</span>
+<span class="fc" id="L82">            throw new BadRequestException(&quot;Erro: O morador solicitante (morador_id) deve ser informado.&quot;);</span>
+        }
+<span class="fc bfc" id="L84" title="All 4 branches covered.">        if (reserva.getAreaLazer() == null || reserva.getAreaLazer().getId() == null) {</span>
+<span class="fc" id="L85">            throw new BadRequestException(&quot;Erro: A área de lazer (area_lazer_id) deve ser informada.&quot;);</span>
+        }
+
+<span class="fc" id="L88">        Morador morador = moradorRepository.findById(reserva.getMorador().getId())</span>
+<span class="fc" id="L89">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Erro: Morador não encontrado&quot;));</span>
+
+        // Verificar propriedade: MORADOR só pode criar reserva para si mesmo
+<span class="fc bfc" id="L92" title="All 2 branches covered.">        if (&quot;MORADOR&quot;.equalsIgnoreCase(roleAutenticado)) {</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">            if (!morador.getEmail().equals(emailAutenticado)) {</span>
+<span class="fc" id="L94">                throw new ForbiddenException(&quot;Erro: Você não tem permissão para criar reservas em nome de outro morador.&quot;);</span>
+            }
+        }
+
+<span class="fc" id="L98">        AreaLazer areaLazer = areaLazerRepository.findById(reserva.getAreaLazer().getId())</span>
+<span class="fc" id="L99">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Erro: Área de lazer não encontrada&quot;));</span>
+
+        // Bloqueio de áreas inativas ou em manutenção
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        if (areaLazer.getStatus() != null) {</span>
+<span class="fc" id="L103">            String statusArea = areaLazer.getStatus().trim().toUpperCase();</span>
+<span class="fc bfc" id="L104" title="All 4 branches covered.">            if (&quot;MANUTENCAO&quot;.equals(statusArea) || &quot;MANUTENÇÃO&quot;.equals(statusArea) ||</span>
+<span class="fc bfc" id="L105" title="All 4 branches covered.">                &quot;INATIVO&quot;.equals(statusArea) || &quot;INATIVA&quot;.equals(statusArea) ||</span>
+<span class="fc bfc" id="L106" title="All 4 branches covered.">                &quot;BLOQUEADA&quot;.equals(statusArea) || &quot;BLOQUEADO&quot;.equals(statusArea) ||</span>
+<span class="fc bfc" id="L107" title="All 4 branches covered.">                &quot;INDISPONIVEL&quot;.equals(statusArea) || &quot;INDISPONÍVEL&quot;.equals(statusArea)) {</span>
+<span class="fc" id="L108">                throw new BusinessRuleException(&quot;Erro: A área de lazer '&quot; + areaLazer.getNome() +</span>
+<span class="fc" id="L109">                        &quot;' está indisponível para reservas no momento (status: &quot; + areaLazer.getStatus() + &quot;).&quot;);</span>
+            }
+        }
+
+<span class="fc" id="L113">        LocalDateTime dataSolicitacao = reserva.getDataSolicitacao();</span>
+<span class="fc" id="L114">        LocalDateTime dataHoraInicio = reserva.getDataHoraInicio();</span>
+<span class="fc" id="L115">        LocalDateTime dataHoraFim = reserva.getDataHoraFim();</span>
+
+        // RN01 – Consistência Cronológica e Antecedência
+<span class="fc bfc" id="L118" title="All 4 branches covered.">        if (dataHoraInicio == null || dataHoraFim == null) {</span>
+<span class="fc" id="L119">            throw new BadRequestException(&quot;Erro (RN01): As datas e horários de início e fim são obrigatórios.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (!dataHoraFim.isAfter(dataHoraInicio)) {</span>
+<span class="fc" id="L123">            throw new BusinessRuleException(&quot;Erro (RN01): A data/hora de fim deve ser obrigatoriamente posterior à data/hora de início.&quot;);</span>
+        }
+
+<span class="fc" id="L126">        LocalDateTime minInicio = dataSolicitacao.plusHours(24);</span>
+<span class="fc" id="L127">        LocalDateTime maxInicio = dataSolicitacao.plusDays(90);</span>
+
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        if (dataHoraInicio.isBefore(minInicio)) {</span>
+<span class="fc" id="L130">            throw new BusinessRuleException(&quot;Erro (RN01): A reserva deve ser solicitada com antecedência mínima de 24 horas a partir do momento da solicitação.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (dataHoraInicio.isAfter(maxInicio)) {</span>
+<span class="fc" id="L134">            throw new BusinessRuleException(&quot;Erro (RN01): A data/hora de início não pode ultrapassar o limite máximo de 90 dias a partir do momento da solicitação.&quot;);</span>
+        }
+
+        // RN02 – Impedimento de Conflito de Horários
+<span class="fc" id="L138">        List&lt;Reserva&gt; conflitos = reservaRepository.findConflitos(</span>
+<span class="fc" id="L139">                areaLazer.getId(),</span>
+                dataHoraInicio,
+                dataHoraFim,
+                null
+        );
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (!conflitos.isEmpty()) {</span>
+<span class="fc" id="L145">            throw new ConflictException(&quot;Erro (RN02): Conflito de horários! Já existe uma reserva ativa (PENDENTE ou CONFIRMADA) para esta área de lazer no período informado.&quot;);</span>
+        }
+
+        // RN03 – Limite de Capacidade de Convidados
+<span class="fc" id="L149">        Integer qtdConvidados = reserva.getQtdConvidados();</span>
+<span class="fc bfc" id="L150" title="All 4 branches covered.">        if (qtdConvidados == null || qtdConvidados &lt; 1) {</span>
+<span class="fc" id="L151">            throw new BadRequestException(&quot;Erro (RN03): O número de convidados deve ser maior ou igual a 1.&quot;);</span>
+        }
+<span class="fc bfc" id="L153" title="All 4 branches covered.">        if (areaLazer.getCapacidadeMaxima() != null &amp;&amp; qtdConvidados &gt; areaLazer.getCapacidadeMaxima()) {</span>
+<span class="fc" id="L154">            throw new BusinessRuleException(&quot;Erro (RN03): O número de convidados (&quot; + qtdConvidados +</span>
+<span class="fc" id="L155">                    &quot;) ultrapassa a capacidade máxima da área de lazer selecionada (&quot; + areaLazer.getCapacidadeMaxima() + &quot;).&quot;);</span>
+        }
+
+        // RN04 – Cota de Reservas Ativas por Morador
+<span class="fc" id="L159">        long reservasAtivas = reservaRepository.countReservasAtivasPorMorador(morador.getId());</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        if (reservasAtivas &gt;= 2) {</span>
+<span class="fc" id="L161">            throw new BusinessRuleException(&quot;Erro (RN04): O morador já atingiu o limite de 2 reservas ativas (PENDENTE ou CONFIRMADA) simultaneamente no sistema.&quot;);</span>
+        }
+
+        // RN05 – Status Inicial e Notificação Automática
+<span class="fc" id="L165">        reserva.setStatus(&quot;PENDENTE&quot;);</span>
+<span class="fc" id="L166">        reserva.setMorador(morador);</span>
+<span class="fc" id="L167">        reserva.setAreaLazer(areaLazer);</span>
+
+<span class="fc" id="L169">        Reserva reservaSalva = reservaRepository.save(reserva);</span>
+
+<span class="fc" id="L171">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy HH:mm&quot;);</span>
+<span class="fc" id="L172">        String dataFormatada = reservaSalva.getDataHoraInicio().format(formatter);</span>
+<span class="fc" id="L173">        Notificacao notificacao = new Notificacao(</span>
+                &quot;Reserva Solicitada&quot;,
+<span class="fc" id="L175">                &quot;Sua solicitação de reserva para a área '&quot; + areaLazer.getNome() + &quot;' em &quot; + dataFormatada +</span>
+                        &quot; foi cadastrada com sucesso e está com status PENDENTE (aguardando confirmação do síndico).&quot;,
+                &quot;RESERVA&quot;,
+<span class="fc" id="L178">                LocalDate.now(clock),</span>
+                morador
+        );
+<span class="fc" id="L181">        notificacaoRepository.save(notificacao);</span>
+
+<span class="fc" id="L183">        return reservaSalva;</span>
+    }
+
+    /**
+     * RN06 – Cancelamento com antecedência mínima de 24h.
+     * Somente reservas PENDENTE ou CONFIRMADA podem ser canceladas.
+     * MORADOR só pode cancelar suas próprias reservas.
+     * Permite cancelamento exatamente no limite de 24h (&gt;=).
+     */
+    @Transactional
+    public Reserva cancelarReserva(Long id, String emailAutenticado, String roleAutenticado) {
+<span class="fc" id="L194">        Reserva reserva = mostrarReservaPorId(id);</span>
+
+        // Verificar propriedade: MORADOR só pode cancelar suas próprias reservas
+<span class="fc bfc" id="L197" title="All 2 branches covered.">        if (&quot;MORADOR&quot;.equalsIgnoreCase(roleAutenticado)) {</span>
+<span class="fc bfc" id="L198" title="All 4 branches covered.">            if (reserva.getMorador() == null || !reserva.getMorador().getEmail().equals(emailAutenticado)) {</span>
+<span class="fc" id="L199">                throw new ForbiddenException(&quot;Erro: Você não tem permissão para cancelar a reserva de outro morador.&quot;);</span>
+            }
+        }
+
+        // Permitir cancelar somente PENDENTE ou CONFIRMADA
+<span class="fc" id="L204">        String statusAtual = reserva.getStatus();</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        if (&quot;CANCELADA&quot;.equalsIgnoreCase(statusAtual)) {</span>
+<span class="fc" id="L206">            throw new BusinessRuleException(&quot;Erro: A reserva já se encontra cancelada.&quot;);</span>
+        }
+<span class="fc bfc" id="L208" title="All 2 branches covered.">        if (&quot;RECUSADA&quot;.equalsIgnoreCase(statusAtual)) {</span>
+<span class="fc" id="L209">            throw new BusinessRuleException(&quot;Erro: Não é possível cancelar uma reserva que foi recusada.&quot;);</span>
+        }
+<span class="fc bfc" id="L211" title="All 4 branches covered.">        if (!&quot;PENDENTE&quot;.equalsIgnoreCase(statusAtual) &amp;&amp; !&quot;CONFIRMADA&quot;.equalsIgnoreCase(statusAtual)) {</span>
+<span class="fc" id="L212">            throw new BusinessRuleException(&quot;Erro: Somente reservas com status PENDENTE ou CONFIRMADA podem ser canceladas.&quot;);</span>
+        }
+
+        // RN06 – Antecedência mínima de 24h (permite exatamente no limite)
+<span class="fc" id="L216">        LocalDateTime agora = LocalDateTime.now(clock);</span>
+<span class="fc" id="L217">        LocalDateTime limiteMinimo = reserva.getDataHoraInicio().minusHours(24);</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        if (agora.isAfter(limiteMinimo)) {</span>
+<span class="fc" id="L219">            throw new BusinessRuleException(&quot;Erro (RN06): O cancelamento só pode ser realizado com antecedência mínima de 24 horas antes da data/hora de início agendada.&quot;);</span>
+        }
+
+<span class="fc" id="L222">        reserva.setStatus(&quot;CANCELADA&quot;);</span>
+<span class="fc" id="L223">        Reserva reservaAtualizada = reservaRepository.save(reserva);</span>
+
+<span class="fc" id="L225">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy HH:mm&quot;);</span>
+<span class="fc" id="L226">        String dataFormatada = reserva.getDataHoraInicio().format(formatter);</span>
+<span class="fc" id="L227">        Notificacao notificacao = new Notificacao(</span>
+                &quot;Reserva Cancelada&quot;,
+<span class="fc" id="L229">                &quot;Sua reserva para a área '&quot; + reserva.getAreaLazer().getNome() + &quot;' agendada para &quot; + dataFormatada +</span>
+                        &quot; foi CANCELADA com sucesso.&quot;,
+                &quot;CANCELAMENTO&quot;,
+<span class="fc" id="L232">                LocalDate.now(clock),</span>
+<span class="fc" id="L233">                reserva.getMorador()</span>
+        );
+<span class="fc" id="L235">        notificacaoRepository.save(notificacao);</span>
+
+<span class="fc" id="L237">        return reservaAtualizada;</span>
+    }
+
+    @Transactional
+    public Reserva confirmarReserva(Long id) {
+<span class="fc" id="L242">        Reserva reserva = mostrarReservaPorId(id);</span>
+
+<span class="fc bfc" id="L244" title="All 2 branches covered.">        if (!&quot;PENDENTE&quot;.equalsIgnoreCase(reserva.getStatus())) {</span>
+<span class="fc" id="L245">            throw new BusinessRuleException(&quot;Erro: Apenas reservas com status PENDENTE podem ser confirmadas.&quot;);</span>
+        }
+
+<span class="fc" id="L248">        reserva.setStatus(&quot;CONFIRMADA&quot;);</span>
+<span class="fc" id="L249">        Reserva reservaAtualizada = reservaRepository.save(reserva);</span>
+
+<span class="fc" id="L251">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy HH:mm&quot;);</span>
+<span class="fc" id="L252">        String dataFormatada = reserva.getDataHoraInicio().format(formatter);</span>
+<span class="fc" id="L253">        Notificacao notificacao = new Notificacao(</span>
+                &quot;Reserva Confirmada&quot;,
+<span class="fc" id="L255">                &quot;Sua reserva para a área '&quot; + reserva.getAreaLazer().getNome() + &quot;' agendada para &quot; + dataFormatada +</span>
+                        &quot; foi CONFIRMADA pelo síndico.&quot;,
+                &quot;CONFIRMACAO&quot;,
+<span class="fc" id="L258">                LocalDate.now(clock),</span>
+<span class="fc" id="L259">                reserva.getMorador()</span>
+        );
+<span class="fc" id="L261">        notificacaoRepository.save(notificacao);</span>
+
+<span class="fc" id="L263">        return reservaAtualizada;</span>
+    }
+
+    @Transactional
+    public Reserva recusarReserva(Long id) {
+<span class="fc" id="L268">        Reserva reserva = mostrarReservaPorId(id);</span>
+
+<span class="fc bfc" id="L270" title="All 2 branches covered.">        if (!&quot;PENDENTE&quot;.equalsIgnoreCase(reserva.getStatus())) {</span>
+<span class="fc" id="L271">            throw new BusinessRuleException(&quot;Erro: Apenas reservas com status PENDENTE podem ser recusadas.&quot;);</span>
+        }
+
+<span class="fc" id="L274">        reserva.setStatus(&quot;RECUSADA&quot;);</span>
+<span class="fc" id="L275">        Reserva reservaAtualizada = reservaRepository.save(reserva);</span>
+
+<span class="fc" id="L277">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;dd/MM/yyyy HH:mm&quot;);</span>
+<span class="fc" id="L278">        String dataFormatada = reserva.getDataHoraInicio().format(formatter);</span>
+<span class="fc" id="L279">        Notificacao notificacao = new Notificacao(</span>
+                &quot;Reserva Recusada&quot;,
+<span class="fc" id="L281">                &quot;Sua solicitação de reserva para a área '&quot; + reserva.getAreaLazer().getNome() + &quot;' agendada para &quot; + dataFormatada +</span>
+                        &quot; foi RECUSADA pelo síndico.&quot;,
+                &quot;RECUSA&quot;,
+<span class="fc" id="L284">                LocalDate.now(clock),</span>
+<span class="fc" id="L285">                reserva.getMorador()</span>
+        );
+<span class="fc" id="L287">        notificacaoRepository.save(notificacao);</span>
+
+<span class="fc" id="L289">        return reservaAtualizada;</span>
+    }
+
+    public List&lt;Reserva&gt; listarTodasReservas() {
+<span class="fc" id="L293">        return reservaRepository.findAll();</span>
+    }
+
+    public Reserva mostrarReservaPorId(Long id) {
+<span class="fc" id="L297">        return reservaRepository.findById(id)</span>
+<span class="fc" id="L298">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Erro: Reserva não encontrada&quot;));</span>
+    }
+
+    /**
+     * Mostra reserva por ID verificando propriedade para MORADOR.
+     */
+    public Reserva mostrarReservaPorId(Long id, String emailAutenticado, String roleAutenticado) {
+<span class="fc" id="L305">        Reserva reserva = mostrarReservaPorId(id);</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">        if (&quot;MORADOR&quot;.equalsIgnoreCase(roleAutenticado)) {</span>
+<span class="fc bfc" id="L307" title="All 4 branches covered.">            if (reserva.getMorador() == null || !reserva.getMorador().getEmail().equals(emailAutenticado)) {</span>
+<span class="fc" id="L308">                throw new ForbiddenException(&quot;Erro: Você não tem permissão para visualizar a reserva de outro morador.&quot;);</span>
+            }
+        }
+<span class="fc" id="L311">        return reserva;</span>
+    }
+
+    public List&lt;Reserva&gt; listarReservasPorMorador(Long moradorId) {
+<span class="fc" id="L315">        return reservaRepository.findByMoradorId(moradorId);</span>
+    }
+
+    /**
+     * Lista reservas por morador verificando propriedade para MORADOR.
+     */
+    public List&lt;Reserva&gt; listarReservasPorMorador(Long moradorId, String emailAutenticado, String roleAutenticado) {
+<span class="fc bfc" id="L322" title="All 2 branches covered.">        if (&quot;MORADOR&quot;.equalsIgnoreCase(roleAutenticado)) {</span>
+<span class="fc" id="L323">            Morador moradorAutenticado = moradorRepository.findByEmail(emailAutenticado)</span>
+<span class="fc" id="L324">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Erro: Morador autenticado não encontrado&quot;));</span>
+<span class="fc bfc" id="L325" title="All 2 branches covered.">            if (!moradorAutenticado.getId().equals(moradorId)) {</span>
+<span class="fc" id="L326">                throw new ForbiddenException(&quot;Erro: Você não tem permissão para visualizar as reservas de outro morador.&quot;);</span>
+            }
+        }
+<span class="fc" id="L329">        return reservaRepository.findByMoradorId(moradorId);</span>
+    }
+
+    public List&lt;Reserva&gt; listarReservasPorAreaLazer(Long areaLazerId) {
+<span class="fc" id="L333">        return reservaRepository.findByAreaLazerId(areaLazerId);</span>
+    }
+
+    public void deletarReserva(Long id) {
+<span class="fc" id="L337">        reservaRepository.deleteById(id);</span>
+<span class="fc" id="L338">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

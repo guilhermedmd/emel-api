@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservaController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.controller</a> &gt; <span class="el_source">ReservaController.java</span></div><h1>ReservaController.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.controller;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import br.edu.ifps.emel_condominios_api.model.Reserva;
+import br.edu.ifps.emel_condominios_api.service.ReservaService;
+
+@RestController
+@RequestMapping(&quot;/reserva&quot;)
+public class ReservaController {
+
+    private final ReservaService reservaService;
+
+<span class="nc" id="L26">    public ReservaController(ReservaService reservaService) {</span>
+<span class="nc" id="L27">        this.reservaService = reservaService;</span>
+<span class="nc" id="L28">    }</span>
+
+    private String extrairEmail(Authentication auth) {
+<span class="nc bnc" id="L31" title="All 2 branches missed.">        return auth != null ? auth.getName() : null;</span>
+    }
+
+    private String extrairRole(Authentication auth) {
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (auth == null) return null;</span>
+<span class="nc" id="L36">        return auth.getAuthorities().stream()</span>
+<span class="nc" id="L37">                .map(GrantedAuthority::getAuthority)</span>
+<span class="nc" id="L38">                .filter(a -&gt; a.startsWith(&quot;ROLE_&quot;))</span>
+<span class="nc" id="L39">                .map(a -&gt; a.substring(5))</span>
+<span class="nc" id="L40">                .findFirst()</span>
+<span class="nc" id="L41">                .orElse(null);</span>
+    }
+
+    @PostMapping
+    public ResponseEntity&lt;Reserva&gt; criarReserva(@RequestBody Reserva reserva, Authentication auth) {
+<span class="nc" id="L46">        String email = extrairEmail(auth);</span>
+<span class="nc" id="L47">        String role = extrairRole(auth);</span>
+<span class="nc" id="L48">        Reserva novaReserva = reservaService.criarReserva(reserva, email, role);</span>
+<span class="nc" id="L49">        return ResponseEntity.ok(novaReserva);</span>
+    }
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;Reserva&gt;&gt; listarTodasReservas() {
+<span class="nc" id="L54">        List&lt;Reserva&gt; reservas = reservaService.listarTodasReservas();</span>
+<span class="nc" id="L55">        return ResponseEntity.ok(reservas);</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;Reserva&gt; mostrarReservaPorId(@PathVariable Long id, Authentication auth) {
+<span class="nc" id="L60">        String email = extrairEmail(auth);</span>
+<span class="nc" id="L61">        String role = extrairRole(auth);</span>
+<span class="nc" id="L62">        Reserva reserva = reservaService.mostrarReservaPorId(id, email, role);</span>
+<span class="nc" id="L63">        return ResponseEntity.ok(reserva);</span>
+    }
+
+    @GetMapping(&quot;/morador/{moradorId}&quot;)
+    public ResponseEntity&lt;List&lt;Reserva&gt;&gt; listarReservasPorMorador(@PathVariable Long moradorId, Authentication auth) {
+<span class="nc" id="L68">        String email = extrairEmail(auth);</span>
+<span class="nc" id="L69">        String role = extrairRole(auth);</span>
+<span class="nc" id="L70">        List&lt;Reserva&gt; reservas = reservaService.listarReservasPorMorador(moradorId, email, role);</span>
+<span class="nc" id="L71">        return ResponseEntity.ok(reservas);</span>
+    }
+
+    @GetMapping(&quot;/area-lazer/{areaLazerId}&quot;)
+    public ResponseEntity&lt;List&lt;Reserva&gt;&gt; listarReservasPorAreaLazer(@PathVariable Long areaLazerId) {
+<span class="nc" id="L76">        List&lt;Reserva&gt; reservas = reservaService.listarReservasPorAreaLazer(areaLazerId);</span>
+<span class="nc" id="L77">        return ResponseEntity.ok(reservas);</span>
+    }
+
+    @PutMapping(&quot;/{id}/cancelar&quot;)
+    public ResponseEntity&lt;Reserva&gt; cancelarReserva(@PathVariable Long id, Authentication auth) {
+<span class="nc" id="L82">        String email = extrairEmail(auth);</span>
+<span class="nc" id="L83">        String role = extrairRole(auth);</span>
+<span class="nc" id="L84">        Reserva cancelada = reservaService.cancelarReserva(id, email, role);</span>
+<span class="nc" id="L85">        return ResponseEntity.ok(cancelada);</span>
+    }
+
+    @PutMapping(&quot;/{id}/confirmar&quot;)
+    public ResponseEntity&lt;Reserva&gt; confirmarReserva(@PathVariable Long id) {
+<span class="nc" id="L90">        Reserva confirmada = reservaService.confirmarReserva(id);</span>
+<span class="nc" id="L91">        return ResponseEntity.ok(confirmada);</span>
+    }
+
+    @PutMapping(&quot;/{id}/recusar&quot;)
+    public ResponseEntity&lt;Reserva&gt; recusarReserva(@PathVariable Long id) {
+<span class="nc" id="L96">        Reserva recusada = reservaService.recusarReserva(id);</span>
+<span class="nc" id="L97">        return ResponseEntity.ok(recusada);</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;Void&gt; deletarReserva(@PathVariable Long id) {
+<span class="nc" id="L102">        reservaService.deletarReserva(id);</span>
+<span class="nc" id="L103">        return ResponseEntity.ok().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

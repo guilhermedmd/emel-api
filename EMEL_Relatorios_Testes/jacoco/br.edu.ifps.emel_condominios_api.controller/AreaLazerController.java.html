@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="pt"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AreaLazerController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">emel-condominios-api</a> &gt; <a href="index.source.html" class="el_package">br.edu.ifps.emel_condominios_api.controller</a> &gt; <span class="el_source">AreaLazerController.java</span></div><h1>AreaLazerController.java</h1><pre class="source lang-java linenums">package br.edu.ifps.emel_condominios_api.controller;
+
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import br.edu.ifps.emel_condominios_api.model.AreaLazer;
+import br.edu.ifps.emel_condominios_api.service.AreaLazerService;
+
+@RestController
+@RequestMapping(&quot;/area-lazer&quot;)
+public class AreaLazerController {
+
+    private final AreaLazerService areaLazerService;
+
+<span class="nc" id="L24">    public AreaLazerController(AreaLazerService areaLazerService) {</span>
+<span class="nc" id="L25">        this.areaLazerService = areaLazerService;</span>
+<span class="nc" id="L26">    }</span>
+
+    @PostMapping
+    public ResponseEntity&lt;AreaLazer&gt; cadastrarAreaLazer(@RequestBody AreaLazer areaLazer) {
+<span class="nc" id="L30">        AreaLazer novaArea = areaLazerService.cadastrarAreaLazer(areaLazer);</span>
+<span class="nc" id="L31">        return ResponseEntity.ok(novaArea);</span>
+    }
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;AreaLazer&gt;&gt; listarAreasLazer() {
+<span class="nc" id="L36">        List&lt;AreaLazer&gt; areas = areaLazerService.listarAreasLazer();</span>
+<span class="nc" id="L37">        return ResponseEntity.ok(areas);</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;AreaLazer&gt; mostrarAreaLazerPorId(@PathVariable Long id) {
+<span class="nc" id="L42">        AreaLazer area = areaLazerService.mostrarAreaLazerPorId(id);</span>
+<span class="nc" id="L43">        return ResponseEntity.ok(area);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;AreaLazer&gt; editarAreaLazer(@PathVariable Long id, @RequestBody AreaLazer novaAreaLazer) {
+<span class="nc" id="L48">        AreaLazer areaAtualizada = areaLazerService.editarAreaLazer(id, novaAreaLazer);</span>
+<span class="nc" id="L49">        return ResponseEntity.ok(areaAtualizada);</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;Void&gt; deletarAreaLazer(@PathVariable Long id) {
+<span class="nc" id="L54">        areaLazerService.deletarAreaLazer(id);</span>
+<span class="nc" id="L55">        return ResponseEntity.ok().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
