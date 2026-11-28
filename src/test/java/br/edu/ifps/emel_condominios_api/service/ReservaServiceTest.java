@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,12 +54,12 @@ class ReservaServiceTest {
     private FakeNotificacaoRepository notificacaoRepository;
     private ReservaService reservaService;
 
-    // Horário fixo mockado com Mockito (via java.time.Clock) para que os testes
-    // NÃO dependam do relógio do computador e tenham resultados 100% determinísticos
+    // Horário fixo controlado via java.time.Clock.fixed() para garantir determinismo
+    // nos testes unitários sem depender do relógio do sistema operacional.
     private static final ZoneId ZONE_ID = ZoneId.of("America/Sao_Paulo");
     private static final LocalDateTime AGORA_MOCKADO = LocalDateTime.of(2026, 11, 27, 10, 0, 0);
     private static final Instant INSTANTE_MOCKADO = AGORA_MOCKADO.atZone(ZONE_ID).toInstant();
-    private Clock clockMock;
+    private Clock clockFixo;
 
     private Morador morador1;
     private Morador morador2;
@@ -70,13 +72,12 @@ class ReservaServiceTest {
         areaLazerRepository = new FakeAreaLazerRepository();
         notificacaoRepository = new FakeNotificacaoRepository();
 
-        // Clock fixo (java.time.Clock.fixed) para que LocalDateTime.now(clock) e LocalDate.now(clock)
-        // no ReservaService retornem sempre o instante fixo AGORA_MOCKADO (27/11/2026 10:00:00),
-        // garantindo determinismo sem depender do relógio do computador (e evitando hang do agente Mockito no JDK 25)
-        clockMock = Clock.fixed(INSTANTE_MOCKADO, ZONE_ID);
+        // Utiliza diretamente Clock.fixed() (sem Mockito) para que LocalDateTime.now(clock)
+        // e LocalDate.now(clock) retornem sempre 27/11/2026 10:00:00 (America/Sao_Paulo).
+        clockFixo = Clock.fixed(INSTANTE_MOCKADO, ZONE_ID);
 
         reservaService = new ReservaService(
-                reservaRepository, moradorRepository, areaLazerRepository, notificacaoRepository, clockMock
+                reservaRepository, moradorRepository, areaLazerRepository, notificacaoRepository, clockFixo
         );
 
         // Dados de teste
@@ -140,14 +141,14 @@ class ReservaServiceTest {
         }
 
         @Test
-        @DisplayName("Deve definir data_solicitacao pelo servidor (usando Clock mockado)")
+        @DisplayName("Deve definir data_solicitacao pelo servidor (usando Clock.fixed)")
         void deveDefinirDataSolicitacaoPeloServidor() {
             Reserva reserva = criarReservaValida(morador1);
             reserva.setDataSolicitacao(LocalDateTime.of(2020, 1, 1, 0, 0)); // valor enviado pelo cliente deve ser ignorado
 
             Reserva resultado = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
 
-            // Como o Clock está mockado com Mockito, dataSolicitacao deve ser exatamente AGORA_MOCKADO
+            // Como o Clock.fixed() está configurado, dataSolicitacao deve ser exatamente AGORA_MOCKADO
             assertEquals(AGORA_MOCKADO, resultado.getDataSolicitacao());
         }
 
@@ -316,10 +317,10 @@ class ReservaServiceTest {
         }
 
         @Test
-        @DisplayName("Valor-limite: aceitar exatamente 24h de antecedência (Clock mockado)")
+        @DisplayName("Valor-limite: aceitar exatamente 24h de antecedência (Clock.fixed)")
         void deveAceitarExatamente24h() {
             Reserva reserva = criarReservaValida(morador1);
-            // Com o Clock mockado, é possível testar exatamente 24h00m00s sem depender do relógio real
+            // Com Clock.fixed(), é possível testar exatamente 24h00m00s sem depender do relógio real
             reserva.setDataHoraInicio(AGORA_MOCKADO.plusHours(24));
             reserva.setDataHoraFim(AGORA_MOCKADO.plusHours(28));
 
@@ -329,10 +330,54 @@ class ReservaServiceTest {
         }
 
         @Test
+        @DisplayName("Valor-limite: rejeitar 24h menos 1 segundo de antecedência")
+        void deveRejeitarAntecedencia24HorasMenosUmSegundo() {
+            Reserva reserva = criarReservaValida(morador1);
+            reserva.setDataHoraInicio(AGORA_MOCKADO.plusHours(24).minusSeconds(1));
+            reserva.setDataHoraFim(AGORA_MOCKADO.plusHours(28));
+
+            assertThrows(BusinessRuleException.class,
+                    () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("Valor-limite: aceitar exatamente 90 dias de antecedência")
+        void deveAceitarExatamente90Dias() {
+            Reserva reserva = criarReservaValida(morador1);
+            reserva.setDataHoraInicio(AGORA_MOCKADO.plusDays(90));
+            reserva.setDataHoraFim(AGORA_MOCKADO.plusDays(90).plusHours(4));
+
+            Reserva resultado = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
+
+            assertNotNull(resultado.getId());
+        }
+
+        @Test
+        @DisplayName("Valor-limite: rejeitar 90 dias e 1 segundo de antecedência")
+        void deveRejeitarAntecedencia90DiasEUmSegundo() {
+            Reserva reserva = criarReservaValida(morador1);
+            reserva.setDataHoraInicio(AGORA_MOCKADO.plusDays(90).plusSeconds(1));
+            reserva.setDataHoraFim(AGORA_MOCKADO.plusDays(90).plusHours(4));
+
+            assertThrows(BusinessRuleException.class,
+                    () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
+        }
+
+        @Test
         @DisplayName("Deve rejeitar quando datas são nulas")
         void deveRejeitarDatasNulas() {
             Reserva reserva = criarReservaValida(morador1);
             reserva.setDataHoraInicio(null);
+            reserva.setDataHoraFim(null);
+
+            assertThrows(BadRequestException.class,
+                    () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("Deve rejeitar quando data_hora_inicio está preenchida e data_hora_fim é nula")
+        void deveRejeitarDataFimNulaComInicioPreenchido() {
+            Reserva reserva = criarReservaValida(morador1);
             reserva.setDataHoraFim(null);
 
             assertThrows(BadRequestException.class,
@@ -367,6 +412,16 @@ class ReservaServiceTest {
     @Nested
     @DisplayName("RN03 – Limite de Capacidade de Convidados")
     class RN03 {
+
+        @Test
+        @DisplayName("Deve rejeitar qtd_convidados nula")
+        void deveRejeitarConvidadosNula() {
+            Reserva reserva = criarReservaValida(morador1);
+            reserva.setQtdConvidados(null);
+
+            assertThrows(BadRequestException.class,
+                    () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
+        }
 
         @Test
         @DisplayName("Deve rejeitar qtd_convidados = 0")
@@ -536,7 +591,7 @@ class ReservaServiceTest {
         }
 
         @Test
-        @DisplayName("Valor-limite: permitir cancelamento exatamente com 24h de antecedência (Clock mockado)")
+        @DisplayName("Valor-limite: permitir cancelamento exatamente com 24h de antecedência (Clock.fixed)")
         void devePermitirCancelamentoExatamente24h() {
             Reserva reserva = criarReservaValida(morador1);
             Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
@@ -551,19 +606,21 @@ class ReservaServiceTest {
         }
 
         @Test
-        @DisplayName("Deve preservar status original quando cancelamento é rejeitado")
+        @DisplayName("Deve preservar status original e não gerar notificação quando cancelamento é rejeitado")
         void devePreservarStatusQuandoRejeitado() {
+            // Arrange
             Reserva reserva = criarReservaValida(morador1);
             Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
             salva.setDataHoraInicio(AGORA_MOCKADO.plusHours(23));
             reservaRepository.save(salva);
 
-            try {
-                reservaService.cancelarReserva(salva.getId(), "joao@email.com", "MORADOR");
-            } catch (BusinessRuleException ignored) {}
+            // Act & Assert
+            assertThrows(BusinessRuleException.class,
+                    () -> reservaService.cancelarReserva(salva.getId(), "joao@email.com", "MORADOR"));
 
             Reserva verificada = reservaRepository.findById(salva.getId()).orElseThrow();
             assertEquals("PENDENTE", verificada.getStatus());
+            assertEquals(1, notificacaoRepository.count()); // apenas a notificação inicial da criação
         }
 
         @Test
@@ -585,28 +642,93 @@ class ReservaServiceTest {
     @DisplayName("Bloqueio de áreas indisponíveis")
     class AreaIndisponivel {
 
-        @Test
-        @DisplayName("Deve rejeitar reserva em área em MANUTENCAO")
-        void deveRejeitarAreaEmManutencao() {
-            areaLazer.setStatus("MANUTENCAO");
+        @ParameterizedTest(name = "Deve rejeitar reserva em área com status {0}")
+        @ValueSource(strings = {
+                "MANUTENCAO", "MANUTENÇÃO",
+                "INATIVO", "INATIVA",
+                "BLOQUEADA", "BLOQUEADO",
+                "INDISPONIVEL", "INDISPONÍVEL"
+        })
+        @DisplayName("Deve rejeitar reserva para todas as variações de status indisponível")
+        void deveRejeitarAreaComStatusIndisponivel(String statusIndisponivel) {
+            // Arrange
+            areaLazer.setStatus(statusIndisponivel);
             areaLazerRepository.save(areaLazer);
-
             Reserva reserva = criarReservaValida(morador1);
 
+            // Act & Assert
             assertThrows(BusinessRuleException.class,
+                    () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
+        }
+    }
+
+    // ========== TESTES DE DADOS OBRIGATÓRIOS E CONSULTAS ==========
+
+    @Nested
+    @DisplayName("Dados obrigatórios e consulta por área de lazer")
+    class DadosObrigatoriosEConsulta {
+
+        @Test
+        @DisplayName("Deve rejeitar criação com morador nulo")
+        void deveRejeitarCriacaoQuandoMoradorNulo() {
+            Reserva reserva = criarReservaValida(morador1);
+            reserva.setMorador(null);
+
+            assertThrows(BadRequestException.class,
                     () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
         }
 
         @Test
-        @DisplayName("Deve rejeitar reserva em área INATIVA")
-        void deveRejeitarAreaInativa() {
-            areaLazer.setStatus("INATIVO");
-            areaLazerRepository.save(areaLazer);
-
+        @DisplayName("Deve rejeitar criação com morador sem identificador")
+        void deveRejeitarCriacaoQuandoMoradorSemId() {
             Reserva reserva = criarReservaValida(morador1);
+            reserva.setMorador(new Morador());
 
-            assertThrows(BusinessRuleException.class,
+            assertThrows(BadRequestException.class,
                     () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("Deve rejeitar criação com área de lazer nula")
+        void deveRejeitarCriacaoQuandoAreaLazerNula() {
+            Reserva reserva = criarReservaValida(morador1);
+            reserva.setAreaLazer(null);
+
+            assertThrows(BadRequestException.class,
+                    () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("Deve rejeitar criação com área de lazer sem identificador")
+        void deveRejeitarCriacaoQuandoAreaLazerSemId() {
+            Reserva reserva = criarReservaValida(morador1);
+            reserva.setAreaLazer(new AreaLazer());
+
+            assertThrows(BadRequestException.class,
+                    () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
+        }
+
+        @Test
+        @DisplayName("Deve listar somente reservas da área de lazer selecionada")
+        void deveListarSomenteReservasDaAreaLazerSelecionada() {
+            // Arrange: segunda área de lazer
+            AreaLazer outraArea = new AreaLazer("Salão de Festas", "Salão principal", 50, "ATIVO");
+            outraArea.setId(2L);
+            areaLazerRepository.save(outraArea);
+
+            Reserva rArea1 = criarReservaValida(morador1);
+            reservaService.criarReserva(rArea1, "joao@email.com", "MORADOR");
+
+            Reserva rArea2 = criarReservaValida(morador2);
+            rArea2.setAreaLazer(new AreaLazer(outraArea.getId()));
+            reservaService.criarReserva(rArea2, "maria@email.com", "MORADOR");
+
+            // Act
+            List<Reserva> reservasArea1 = reservaService.listarReservasPorAreaLazer(areaLazer.getId());
+
+            // Assert
+            assertEquals(1, reservasArea1.size());
+            assertEquals(areaLazer.getId(), reservasArea1.getFirst().getAreaLazer().getId());
         }
     }
 
