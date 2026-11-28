@@ -1,6 +1,9 @@
 package br.edu.ifps.emel_condominios_api.service;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +52,13 @@ class ReservaServiceTest {
     private FakeNotificacaoRepository notificacaoRepository;
     private ReservaService reservaService;
 
+    // Horário fixo mockado com Mockito (via java.time.Clock) para que os testes
+    // NÃO dependam do relógio do computador e tenham resultados 100% determinísticos
+    private static final ZoneId ZONE_ID = ZoneId.of("America/Sao_Paulo");
+    private static final LocalDateTime AGORA_MOCKADO = LocalDateTime.of(2026, 11, 27, 10, 0, 0);
+    private static final Instant INSTANTE_MOCKADO = AGORA_MOCKADO.atZone(ZONE_ID).toInstant();
+    private Clock clockMock;
+
     private Morador morador1;
     private Morador morador2;
     private AreaLazer areaLazer;
@@ -60,8 +70,13 @@ class ReservaServiceTest {
         areaLazerRepository = new FakeAreaLazerRepository();
         notificacaoRepository = new FakeNotificacaoRepository();
 
+        // Clock fixo (java.time.Clock.fixed) para que LocalDateTime.now(clock) e LocalDate.now(clock)
+        // no ReservaService retornem sempre o instante fixo AGORA_MOCKADO (27/11/2026 10:00:00),
+        // garantindo determinismo sem depender do relógio do computador (e evitando hang do agente Mockito no JDK 25)
+        clockMock = Clock.fixed(INSTANTE_MOCKADO, ZONE_ID);
+
         reservaService = new ReservaService(
-                reservaRepository, moradorRepository, areaLazerRepository, notificacaoRepository
+                reservaRepository, moradorRepository, areaLazerRepository, notificacaoRepository, clockMock
         );
 
         // Dados de teste
@@ -82,8 +97,8 @@ class ReservaServiceTest {
         Reserva r = new Reserva();
         r.setMorador(new Morador(morador.getId()));
         r.setAreaLazer(new AreaLazer(areaLazer.getId()));
-        r.setDataHoraInicio(LocalDateTime.now().plusHours(25));
-        r.setDataHoraFim(LocalDateTime.now().plusHours(29));
+        r.setDataHoraInicio(AGORA_MOCKADO.plusHours(25));
+        r.setDataHoraFim(AGORA_MOCKADO.plusHours(29));
         r.setTipoEvento("Churrasco");
         r.setQtdConvidados(10);
         r.setObservacoes("Teste");
@@ -125,17 +140,15 @@ class ReservaServiceTest {
         }
 
         @Test
-        @DisplayName("Deve definir data_solicitacao pelo servidor")
+        @DisplayName("Deve definir data_solicitacao pelo servidor (usando Clock mockado)")
         void deveDefinirDataSolicitacaoPeloServidor() {
             Reserva reserva = criarReservaValida(morador1);
-            reserva.setDataSolicitacao(LocalDateTime.of(2020, 1, 1, 0, 0)); // valor do cliente
+            reserva.setDataSolicitacao(LocalDateTime.of(2020, 1, 1, 0, 0)); // valor enviado pelo cliente deve ser ignorado
 
-            LocalDateTime antes = LocalDateTime.now();
             Reserva resultado = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
-            LocalDateTime depois = LocalDateTime.now();
 
-            assertTrue(!resultado.getDataSolicitacao().isBefore(antes));
-            assertTrue(!resultado.getDataSolicitacao().isAfter(depois));
+            // Como o Clock está mockado com Mockito, dataSolicitacao deve ser exatamente AGORA_MOCKADO
+            assertEquals(AGORA_MOCKADO, resultado.getDataSolicitacao());
         }
 
         @Test
@@ -148,8 +161,8 @@ class ReservaServiceTest {
             // Tenta criar nova reserva com ID existente
             Reserva reserva2 = criarReservaValida(morador1);
             reserva2.setId(idOriginal);
-            reserva2.setDataHoraInicio(LocalDateTime.now().plusHours(50));
-            reserva2.setDataHoraFim(LocalDateTime.now().plusHours(54));
+            reserva2.setDataHoraInicio(AGORA_MOCKADO.plusHours(50));
+            reserva2.setDataHoraFim(AGORA_MOCKADO.plusHours(54));
 
             Reserva resultado = reservaService.criarReserva(reserva2, "joao@email.com", "MORADOR");
 
@@ -284,8 +297,8 @@ class ReservaServiceTest {
         @DisplayName("Deve rejeitar antecedência menor que 24 horas")
         void deveRejeitarAntecedenciaMenor24h() {
             Reserva reserva = criarReservaValida(morador1);
-            reserva.setDataHoraInicio(LocalDateTime.now().plusHours(23));
-            reserva.setDataHoraFim(LocalDateTime.now().plusHours(27));
+            reserva.setDataHoraInicio(AGORA_MOCKADO.plusHours(23));
+            reserva.setDataHoraFim(AGORA_MOCKADO.plusHours(27));
 
             assertThrows(BusinessRuleException.class,
                     () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
@@ -295,20 +308,20 @@ class ReservaServiceTest {
         @DisplayName("Deve rejeitar antecedência maior que 90 dias")
         void deveRejeitarAntecedenciaMaior90Dias() {
             Reserva reserva = criarReservaValida(morador1);
-            reserva.setDataHoraInicio(LocalDateTime.now().plusDays(91));
-            reserva.setDataHoraFim(LocalDateTime.now().plusDays(91).plusHours(4));
+            reserva.setDataHoraInicio(AGORA_MOCKADO.plusDays(91));
+            reserva.setDataHoraFim(AGORA_MOCKADO.plusDays(91).plusHours(4));
 
             assertThrows(BusinessRuleException.class,
                     () -> reservaService.criarReserva(reserva, "joao@email.com", "MORADOR"));
         }
 
         @Test
-        @DisplayName("Valor-limite: aceitar exatamente 24h de antecedência")
+        @DisplayName("Valor-limite: aceitar exatamente 24h de antecedência (Clock mockado)")
         void deveAceitarExatamente24h() {
             Reserva reserva = criarReservaValida(morador1);
-            // Definir início para exatamente 24h + 1 segundo (para compensar tempo de execução)
-            reserva.setDataHoraInicio(LocalDateTime.now().plusHours(24).plusSeconds(5));
-            reserva.setDataHoraFim(LocalDateTime.now().plusHours(28));
+            // Com o Clock mockado, é possível testar exatamente 24h00m00s sem depender do relógio real
+            reserva.setDataHoraInicio(AGORA_MOCKADO.plusHours(24));
+            reserva.setDataHoraFim(AGORA_MOCKADO.plusHours(28));
 
             Reserva resultado = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
 
@@ -418,18 +431,18 @@ class ReservaServiceTest {
         @DisplayName("Deve rejeitar terceira reserva ativa")
         void deveRejeitarTerceiraReserva() {
             Reserva r1 = criarReservaValida(morador1);
-            r1.setDataHoraInicio(LocalDateTime.now().plusHours(25));
-            r1.setDataHoraFim(LocalDateTime.now().plusHours(29));
+            r1.setDataHoraInicio(AGORA_MOCKADO.plusHours(25));
+            r1.setDataHoraFim(AGORA_MOCKADO.plusHours(29));
             reservaService.criarReserva(r1, "joao@email.com", "MORADOR");
 
             Reserva r2 = criarReservaValida(morador1);
-            r2.setDataHoraInicio(LocalDateTime.now().plusHours(50));
-            r2.setDataHoraFim(LocalDateTime.now().plusHours(54));
+            r2.setDataHoraInicio(AGORA_MOCKADO.plusHours(50));
+            r2.setDataHoraFim(AGORA_MOCKADO.plusHours(54));
             reservaService.criarReserva(r2, "joao@email.com", "MORADOR");
 
             Reserva r3 = criarReservaValida(morador1);
-            r3.setDataHoraInicio(LocalDateTime.now().plusHours(75));
-            r3.setDataHoraFim(LocalDateTime.now().plusHours(79));
+            r3.setDataHoraInicio(AGORA_MOCKADO.plusHours(75));
+            r3.setDataHoraFim(AGORA_MOCKADO.plusHours(79));
 
             assertThrows(BusinessRuleException.class,
                     () -> reservaService.criarReserva(r3, "joao@email.com", "MORADOR"));
@@ -439,13 +452,13 @@ class ReservaServiceTest {
         @DisplayName("Valor-limite: aceitar segunda reserva ativa")
         void deveAceitarSegundaReserva() {
             Reserva r1 = criarReservaValida(morador1);
-            r1.setDataHoraInicio(LocalDateTime.now().plusHours(25));
-            r1.setDataHoraFim(LocalDateTime.now().plusHours(29));
+            r1.setDataHoraInicio(AGORA_MOCKADO.plusHours(25));
+            r1.setDataHoraFim(AGORA_MOCKADO.plusHours(29));
             reservaService.criarReserva(r1, "joao@email.com", "MORADOR");
 
             Reserva r2 = criarReservaValida(morador1);
-            r2.setDataHoraInicio(LocalDateTime.now().plusHours(50));
-            r2.setDataHoraFim(LocalDateTime.now().plusHours(54));
+            r2.setDataHoraInicio(AGORA_MOCKADO.plusHours(50));
+            r2.setDataHoraFim(AGORA_MOCKADO.plusHours(54));
 
             Reserva resultado = reservaService.criarReserva(r2, "joao@email.com", "MORADOR");
 
@@ -514,8 +527,8 @@ class ReservaServiceTest {
             Reserva reserva = criarReservaValida(morador1);
             Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
 
-            // Forçar data_hora_inicio para daqui a 23h (menos que 24h de agora)
-            salva.setDataHoraInicio(LocalDateTime.now().plusHours(23));
+            // Forçar data_hora_inicio para daqui a 23h em relação ao horário mockado (menos que 24h)
+            salva.setDataHoraInicio(AGORA_MOCKADO.plusHours(23));
             reservaRepository.save(salva);
 
             assertThrows(BusinessRuleException.class,
@@ -523,11 +536,26 @@ class ReservaServiceTest {
         }
 
         @Test
+        @DisplayName("Valor-limite: permitir cancelamento exatamente com 24h de antecedência (Clock mockado)")
+        void devePermitirCancelamentoExatamente24h() {
+            Reserva reserva = criarReservaValida(morador1);
+            Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
+
+            // Exatamente 24h de antecedência em relação a AGORA_MOCKADO
+            salva.setDataHoraInicio(AGORA_MOCKADO.plusHours(24));
+            reservaRepository.save(salva);
+
+            Reserva cancelada = reservaService.cancelarReserva(salva.getId(), "joao@email.com", "MORADOR");
+
+            assertEquals("CANCELADA", cancelada.getStatus());
+        }
+
+        @Test
         @DisplayName("Deve preservar status original quando cancelamento é rejeitado")
         void devePreservarStatusQuandoRejeitado() {
             Reserva reserva = criarReservaValida(morador1);
             Reserva salva = reservaService.criarReserva(reserva, "joao@email.com", "MORADOR");
-            salva.setDataHoraInicio(LocalDateTime.now().plusHours(23));
+            salva.setDataHoraInicio(AGORA_MOCKADO.plusHours(23));
             reservaRepository.save(salva);
 
             try {
@@ -684,6 +712,8 @@ class ReservaServiceTest {
         @Override public void deleteAllByIdInBatch(Iterable<Long> longs) { throw new UnsupportedOperationException(); }
         @Override public void deleteAllInBatch() { throw new UnsupportedOperationException(); }
         @Override public Reserva getReferenceById(Long id) { return store.get(id); }
+        @Override public Reserva getById(Long id) { return store.get(id); }
+        @Override public Reserva getOne(Long id) { return store.get(id); }
         @Override public <S extends Reserva> Optional<S> findOne(Example<S> example) { throw new UnsupportedOperationException(); }
         @Override public <S extends Reserva> List<S> findAll(Example<S> example) { throw new UnsupportedOperationException(); }
         @Override public <S extends Reserva> List<S> findAll(Example<S> example, Sort sort) { throw new UnsupportedOperationException(); }
@@ -695,6 +725,7 @@ class ReservaServiceTest {
         @Override public Page<Reserva> findAll(Pageable pageable) { throw new UnsupportedOperationException(); }
         @Override public List<Reserva> findAllById(Iterable<Long> ids) { throw new UnsupportedOperationException(); }
         @Override public void deleteAll(Iterable<? extends Reserva> entities) { throw new UnsupportedOperationException(); }
+        @Override public void deleteAllById(Iterable<? extends Long> ids) { throw new UnsupportedOperationException(); }
         @Override public void deleteAll() { store.clear(); }
     }
 
@@ -729,6 +760,8 @@ class ReservaServiceTest {
         @Override public void deleteAllByIdInBatch(Iterable<Long> longs) { throw new UnsupportedOperationException(); }
         @Override public void deleteAllInBatch() { throw new UnsupportedOperationException(); }
         @Override public Morador getReferenceById(Long id) { return store.get(id); }
+        @Override public Morador getById(Long id) { return store.get(id); }
+        @Override public Morador getOne(Long id) { return store.get(id); }
         @Override public <S extends Morador> Optional<S> findOne(Example<S> example) { throw new UnsupportedOperationException(); }
         @Override public <S extends Morador> List<S> findAll(Example<S> example) { throw new UnsupportedOperationException(); }
         @Override public <S extends Morador> List<S> findAll(Example<S> example, Sort sort) { throw new UnsupportedOperationException(); }
@@ -740,6 +773,7 @@ class ReservaServiceTest {
         @Override public Page<Morador> findAll(Pageable pageable) { throw new UnsupportedOperationException(); }
         @Override public List<Morador> findAllById(Iterable<Long> ids) { throw new UnsupportedOperationException(); }
         @Override public void deleteAll(Iterable<? extends Morador> entities) { throw new UnsupportedOperationException(); }
+        @Override public void deleteAllById(Iterable<? extends Long> ids) { throw new UnsupportedOperationException(); }
         @Override public void deleteAll() { store.clear(); }
     }
 
@@ -769,6 +803,8 @@ class ReservaServiceTest {
         @Override public void deleteAllByIdInBatch(Iterable<Long> longs) { throw new UnsupportedOperationException(); }
         @Override public void deleteAllInBatch() { throw new UnsupportedOperationException(); }
         @Override public AreaLazer getReferenceById(Long id) { return store.get(id); }
+        @Override public AreaLazer getById(Long id) { return store.get(id); }
+        @Override public AreaLazer getOne(Long id) { return store.get(id); }
         @Override public <S extends AreaLazer> Optional<S> findOne(Example<S> example) { throw new UnsupportedOperationException(); }
         @Override public <S extends AreaLazer> List<S> findAll(Example<S> example) { throw new UnsupportedOperationException(); }
         @Override public <S extends AreaLazer> List<S> findAll(Example<S> example, Sort sort) { throw new UnsupportedOperationException(); }
@@ -780,6 +816,7 @@ class ReservaServiceTest {
         @Override public Page<AreaLazer> findAll(Pageable pageable) { throw new UnsupportedOperationException(); }
         @Override public List<AreaLazer> findAllById(Iterable<Long> ids) { throw new UnsupportedOperationException(); }
         @Override public void deleteAll(Iterable<? extends AreaLazer> entities) { throw new UnsupportedOperationException(); }
+        @Override public void deleteAllById(Iterable<? extends Long> ids) { throw new UnsupportedOperationException(); }
         @Override public void deleteAll() { store.clear(); }
     }
 
@@ -811,6 +848,8 @@ class ReservaServiceTest {
         @Override public void deleteAllByIdInBatch(Iterable<Long> longs) { throw new UnsupportedOperationException(); }
         @Override public void deleteAllInBatch() { throw new UnsupportedOperationException(); }
         @Override public Notificacao getReferenceById(Long id) { return store.get(id); }
+        @Override public Notificacao getById(Long id) { return store.get(id); }
+        @Override public Notificacao getOne(Long id) { return store.get(id); }
         @Override public <S extends Notificacao> Optional<S> findOne(Example<S> example) { throw new UnsupportedOperationException(); }
         @Override public <S extends Notificacao> List<S> findAll(Example<S> example) { throw new UnsupportedOperationException(); }
         @Override public <S extends Notificacao> List<S> findAll(Example<S> example, Sort sort) { throw new UnsupportedOperationException(); }
@@ -822,6 +861,7 @@ class ReservaServiceTest {
         @Override public Page<Notificacao> findAll(Pageable pageable) { throw new UnsupportedOperationException(); }
         @Override public List<Notificacao> findAllById(Iterable<Long> ids) { throw new UnsupportedOperationException(); }
         @Override public void deleteAll(Iterable<? extends Notificacao> entities) { throw new UnsupportedOperationException(); }
+        @Override public void deleteAllById(Iterable<? extends Long> ids) { throw new UnsupportedOperationException(); }
         @Override public void deleteAll() { store.clear(); }
     }
 }

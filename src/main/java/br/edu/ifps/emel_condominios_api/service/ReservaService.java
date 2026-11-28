@@ -1,10 +1,12 @@
 package br.edu.ifps.emel_condominios_api.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,15 +31,26 @@ public class ReservaService {
     private final MoradorRepository moradorRepository;
     private final AreaLazerRepository areaLazerRepository;
     private final NotificacaoRepository notificacaoRepository;
+    private final Clock clock;
 
+    @Autowired
     public ReservaService(ReservaRepository reservaRepository,
                           MoradorRepository moradorRepository,
                           AreaLazerRepository areaLazerRepository,
                           NotificacaoRepository notificacaoRepository) {
+        this(reservaRepository, moradorRepository, areaLazerRepository, notificacaoRepository, Clock.systemDefaultZone());
+    }
+
+    public ReservaService(ReservaRepository reservaRepository,
+                          MoradorRepository moradorRepository,
+                          AreaLazerRepository areaLazerRepository,
+                          NotificacaoRepository notificacaoRepository,
+                          Clock clock) {
         this.reservaRepository = reservaRepository;
         this.moradorRepository = moradorRepository;
         this.areaLazerRepository = areaLazerRepository;
         this.notificacaoRepository = notificacaoRepository;
+        this.clock = clock;
     }
 
     /**
@@ -63,7 +76,7 @@ public class ReservaService {
         reserva.setId(null);
 
         // data_solicitacao sempre definida pelo servidor
-        reserva.setDataSolicitacao(LocalDateTime.now());
+        reserva.setDataSolicitacao(LocalDateTime.now(clock));
 
         if (reserva.getMorador() == null || reserva.getMorador().getId() == null) {
             throw new BadRequestException("Erro: O morador solicitante (morador_id) deve ser informado.");
@@ -162,7 +175,7 @@ public class ReservaService {
                 "Sua solicitação de reserva para a área '" + areaLazer.getNome() + "' em " + dataFormatada +
                         " foi cadastrada com sucesso e está com status PENDENTE (aguardando confirmação do síndico).",
                 "RESERVA",
-                LocalDate.now(),
+                LocalDate.now(clock),
                 morador
         );
         notificacaoRepository.save(notificacao);
@@ -200,7 +213,7 @@ public class ReservaService {
         }
 
         // RN06 – Antecedência mínima de 24h (permite exatamente no limite)
-        LocalDateTime agora = LocalDateTime.now();
+        LocalDateTime agora = LocalDateTime.now(clock);
         LocalDateTime limiteMinimo = reserva.getDataHoraInicio().minusHours(24);
         if (agora.isAfter(limiteMinimo)) {
             throw new BusinessRuleException("Erro (RN06): O cancelamento só pode ser realizado com antecedência mínima de 24 horas antes da data/hora de início agendada.");
@@ -216,7 +229,7 @@ public class ReservaService {
                 "Sua reserva para a área '" + reserva.getAreaLazer().getNome() + "' agendada para " + dataFormatada +
                         " foi CANCELADA com sucesso.",
                 "CANCELAMENTO",
-                LocalDate.now(),
+                LocalDate.now(clock),
                 reserva.getMorador()
         );
         notificacaoRepository.save(notificacao);
@@ -242,7 +255,7 @@ public class ReservaService {
                 "Sua reserva para a área '" + reserva.getAreaLazer().getNome() + "' agendada para " + dataFormatada +
                         " foi CONFIRMADA pelo síndico.",
                 "CONFIRMACAO",
-                LocalDate.now(),
+                LocalDate.now(clock),
                 reserva.getMorador()
         );
         notificacaoRepository.save(notificacao);
@@ -268,7 +281,7 @@ public class ReservaService {
                 "Sua solicitação de reserva para a área '" + reserva.getAreaLazer().getNome() + "' agendada para " + dataFormatada +
                         " foi RECUSADA pelo síndico.",
                 "RECUSA",
-                LocalDate.now(),
+                LocalDate.now(clock),
                 reserva.getMorador()
         );
         notificacaoRepository.save(notificacao);
